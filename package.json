@@ -1,0 +1,20 @@
+{
+  "name": "sai-swarn-palace",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "free:5173": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$p=Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if($p){ $p | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host ('Stopped PID ' + $_ + ' on port 5173') } } else { Write-Host 'Port 5173 is free' }\"",
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev -- --host 0.0.0.0 --port 5173 --strictPort\"",
+    "dev:clean": "npm run free:5173 && npm run dev",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+    "build": "npm --prefix client run build",
+    "start": "concurrently \"npm --prefix server run start\" \"npm --prefix client run preview -- --host 0.0.0.0 --port 5173 --strictPort\"",
+    "start:prod": "npm run build && npm run start",
+    "start:clean": "npm run free:5173 && npm run start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
