@@ -11,8 +11,8 @@ const dbConfig = {
   port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 1433,
   driver: dbDriver,
   options: {
-    encrypt: false,
-    trustServerCertificate: true,
+    encrypt: true,
+    trustServerCertificate:false,
     useUTC: false,
     enableArithAbort: true,
     connectionTimeout: 15000,
