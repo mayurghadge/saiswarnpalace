@@ -142,10 +142,14 @@ exports.verifyOTP = async (req, res) => {
     
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+{
+    id: user.id,
+    email: user.email,
+    role: 'user'
+},
+process.env.JWT_SECRET,
+{ expiresIn: '7d' }
+)
     
     res.status(200).json({
       message: 'OTP verified successfully',
