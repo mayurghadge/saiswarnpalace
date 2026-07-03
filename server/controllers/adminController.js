@@ -434,9 +434,9 @@ exports.deleteCoupon = async (req, res) => {
 exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const fallbackEmail = 'admin';
-    const fallbackPassword = 'Ssp@277369';
-    const isFallbackLogin = (email === fallbackEmail || email === 'admin@saiswarnpalace') && password === fallbackPassword;
+    //const fallbackEmail = 'admin';
+    //const fallbackPassword = 'Ssp@277369';
+    //const isFallbackLogin = (email === fallbackEmail || email === 'admin@saiswarnpalace') && password === fallbackPassword;
 
     const pool = await connectDB();
 
@@ -450,7 +450,7 @@ exports.adminLogin = async (req, res) => {
         admin = result.recordset[0];
       }
     } catch (dbError) {
-      if (isFallbackLogin) {
+      //if (isFallbackLogin) {
         const token = jwt.sign(
           { id: 1, email, role: 'admin' },
           process.env.JWT_SECRET || 'your-secret-key',
@@ -462,7 +462,7 @@ exports.adminLogin = async (req, res) => {
           token,
           admin: { id: 1, name: 'Admin', email }
         });
-      }
+      //}
 
       console.error('Admin Login DB Error:', dbError);
       return res.status(500).json({ message: 'Server error', error: dbError.message });
