@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = 'http://localhost:5000/api/admin';
-const SERVER_BASE = 'http://localhost:5000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api/admin";
+const SERVER_BASE =
+  import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
 const ADMIN_AUTO_REFRESH_MS = 20000;
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
 

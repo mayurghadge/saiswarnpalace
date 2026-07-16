@@ -5,7 +5,8 @@ import { Plus, Edit, Trash2, CheckCircle2, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 
-const SERVER_BASE = 'http://localhost:5000';
+const SERVER_BASE =
+  import.meta.env.VITE_SERVER_URL || "http://localhost:5000";
 // Helper to get image URL
 const getImageUrl = (url) => {
   if (!url) return '';

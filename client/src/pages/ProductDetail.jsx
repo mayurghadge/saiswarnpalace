@@ -6,7 +6,8 @@ import { Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { calculateDiscountFromCoupon, loadAppliedCoupon } from '../utils/coupons';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_1200,h_750,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg';
 
 const ProductDetail = () => {
