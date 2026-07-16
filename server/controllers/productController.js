@@ -120,7 +120,9 @@ exports.getGoldRates = async (req, res) => {
 
     const rates = result.recordset[0];
     if (!rates || (!rates.gold_rate_18k && !rates.gold_rate_22k && !rates.gold_rate_24k && !rates.silver_rate)) {
-      return res.status(404).json({ message: 'No gold rates found' });
+      // An empty GoldRates table is valid during initial setup. The client keeps
+      // its configured defaults until an administrator saves the first rates.
+      return res.status(200).json({ rates: {} });
     }
 
     res.status(200).json({ rates });
