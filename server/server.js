@@ -12,16 +12,15 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
 const allowedOrigins = [
-  "http://localhost:5173",
   "https://saiswarnpalace.vercel.app"
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const isLocalDevelopmentOrigin = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin || '');
+      if (!origin || isLocalDevelopmentOrigin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
