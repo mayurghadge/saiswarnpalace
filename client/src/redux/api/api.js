@@ -3,6 +3,7 @@ import API from "./api";
 
 API.get("/products");
 axios.get("http://localhost:5000/api/products")
+ import.meta.env.VITE_API_URL || "http://localhost:5000/api/products"
 
 
 const API = axios.create({
