@@ -25,5 +25,4 @@ test('getUserColumnMap returns the schema-compatible user columns', () => {
   assert.equal(columns.email, 'email');
   assert.equal(columns.phone, 'phone');
   assert.equal(columns.password, 'password');
-  assert.equal(columns.isVerified, 'is_verified');
 });

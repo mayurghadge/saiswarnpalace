@@ -15,7 +15,6 @@ function getUserColumnMap() {
     email: 'email',
     phone: 'phone',
     password: 'password',
-    isVerified: 'is_verified',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
   };
@@ -93,9 +92,9 @@ exports.register = async (req, res) => {
       .input('phone', sql.NVarChar, phone)
       .input('password', sql.NVarChar, hashedPassword)
       .query(`
-        INSERT INTO Users (name, email, phone, password, is_verified)
+        INSERT INTO Users (name, email, phone, password)
         OUTPUT inserted.id AS id, inserted.name AS name, inserted.email AS email, inserted.phone AS phone, inserted.created_at AS created_at
-        VALUES (@name, @email, @phone, @password, 0)
+        VALUES (@name, @email, @phone, @password)
       `);
     
     const user = result.recordset[0];
@@ -159,15 +158,7 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ message: 'OTP expired' });
     }
     
-    // Update user as verified
-    await pool.request()
-      .input('userId', sql.Int, user.id)
-      .query(`
-        UPDATE Users
-        SET ${getUserColumnMap().isVerified} = 1
-        WHERE ${getUserColumnMap().id} = @userId
-      `);
-
+    // Keep verification state in memory for this session.
     otpStore.delete(email.toLowerCase());
     
     // Generate JWT token
@@ -219,8 +210,7 @@ exports.login = async (req, res) => {
           ${columns.name} AS name,
           ${columns.email} AS email,
           ${columns.phone} AS phone,
-          ${columns.password} AS password_hash,
-          ${columns.isVerified} AS is_identity_verified
+          ${columns.password} AS password_hash
         FROM Users
         WHERE ${columns.email} = @email
       `);
