@@ -7,7 +7,7 @@ const dbConfig = {
   server: process.env.DB_SERVER || 'localhost',
   database: process.env.DB_NAME || 'SaiSwarnPalace',
   user: process.env.DB_USER || 'sa',
-  password: process.env.DB_PASSWORD || 'Ssp@277369',
+  password: process.env.DB_PASSWORD || 'Sspnp@277369',
   port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 1433,
   driver: dbDriver,
   options: {
