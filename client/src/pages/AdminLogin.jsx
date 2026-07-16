@@ -18,8 +18,8 @@ const AdminLogin = () => {
     setIsLoading(true);
     try {
       const response = await api.post('/admin/login', {
-        email: credentials.email,
-        password: credentials.password
+        email: credentials.email.trim(),
+        password: credentials.password.trim()
       });
       
       localStorage.setItem('token', response.data.token);
