@@ -1,13 +1,7 @@
-import axios from "axios";
-import API from "./api";
-
-API.get("/products");
-axios.get("http://localhost:5000/api/products")
- import.meta.env.VITE_API_URL || "http://localhost:5000/api/products"
-
+import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   withCredentials: true,
 });
 
