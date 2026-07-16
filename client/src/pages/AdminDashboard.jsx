@@ -22,11 +22,11 @@ import {
 import { toast } from 'react-hot-toast';
 
 const publicApiBaseUrl =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+  import.meta.env.VITE_API_URL || '/api';
 const API_BASE_URL =
   import.meta.env.VITE_ADMIN_API_URL || `${publicApiBaseUrl.replace(/\/$/, '')}/admin`;
 const SERVER_BASE =
-  import.meta.env.VITE_SERVER_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+  import.meta.env.VITE_SERVER_URL || publicApiBaseUrl.replace(/\/api\/?$/, '');
 const ADMIN_AUTO_REFRESH_MS = 20000;
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
 

@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import api from '../services/api';
 
 const SERVER_BASE =
-  import.meta.env.VITE_SERVER_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+  import.meta.env.VITE_SERVER_URL || (import.meta.env.VITE_API_URL || '/api').replace(/\/api\/?$/, '');
 // Helper to get image URL
 const getImageUrl = (url) => {
   if (!url) return '';

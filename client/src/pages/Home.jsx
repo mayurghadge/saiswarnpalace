@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShieldCheck, Truck, Gem, Sparkles } from 'lucide-react';
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+  import.meta.env.VITE_API_URL || '/api';
 const HOME_AUTO_REFRESH_MS = 20000;
 
 const fallbackImages = [

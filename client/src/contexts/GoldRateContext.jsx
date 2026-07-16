@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 const GoldRateContext = createContext();
 const API_BASE =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+  import.meta.env.VITE_API_URL || '/api';
 
 export const GoldRateProvider = ({ children }) => {
   // Gold rate per gram (INR)
