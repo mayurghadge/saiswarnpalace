@@ -44,6 +44,7 @@ const userController = require('./controllers/userController');
 const cartController = require('./controllers/cartController');
 const wishlistController = require('./controllers/wishlistController');
 const authMiddleware = require('./middleware/auth');
+const requireAdmin = authMiddleware.requireAdmin;
 
 let dbConnected = false;
 
@@ -108,7 +109,7 @@ app.delete('/api/wishlist/:productId', wishlistController.removeFromWishlist);
 app.post('/api/admin/login', adminController.adminLogin);
 
 // Protected Admin Routes
-app.use('/api/admin', authMiddleware);
+app.use('/api/admin', authMiddleware, requireAdmin);
 app.get('/api/admin/dashboard', adminController.getDashboardStats);
 
 // Admin Categories

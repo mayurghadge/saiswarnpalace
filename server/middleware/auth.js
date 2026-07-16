@@ -19,3 +19,12 @@ const auth = (req, res, next) => {
 };
 
 module.exports = auth;
+
+// All /api/admin routes must receive an admin token. A valid customer token is
+// sufficient for customer endpoints, but never for admin operations.
+module.exports.requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access is required' });
+  }
+  next();
+};

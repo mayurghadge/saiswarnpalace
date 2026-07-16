@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
+const requireAdmin = authMiddleware.requireAdmin;
 const upload = require('../config/upload');
 
 // Public route - Admin login
 router.post('/login', adminController.adminLogin);
 
 // Protected routes - require valid admin token
-router.use(authMiddleware);
+router.use(authMiddleware, requireAdmin);
 
 // Dashboard
 router.get('/dashboard', adminController.getDashboardStats);

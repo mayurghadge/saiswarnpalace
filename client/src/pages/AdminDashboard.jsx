@@ -29,7 +29,7 @@ const ADMIN_AUTO_REFRESH_MS = 20000;
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('adminToken');
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -474,7 +474,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('adminLoggedIn');
-    if (!isAdmin) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!isAdmin || !adminToken) {
       navigate('/admin-login');
       return;
     }
@@ -511,7 +512,7 @@ const AdminDashboard = () => {
     try {
       const url = editingProduct ? `${API_BASE_URL}/products/${editingProduct.id}` : `${API_BASE_URL}/products`;
       const method = editingProduct ? 'PUT' : 'POST';
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
       const formData = new FormData();
       for (let key in productForm) {
@@ -544,7 +545,7 @@ const AdminDashboard = () => {
     try {
       const url = editingCategory ? `${API_BASE_URL}/categories/${editingCategory.id}` : `${API_BASE_URL}/categories`;
       const method = editingCategory ? 'PUT' : 'POST';
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
       const formData = new FormData();
       for (let key in categoryForm) {
