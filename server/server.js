@@ -70,13 +70,17 @@ app.get('/api/health', async (req, res) => {
 // Test DB connection on startup
 (async () => {
   try {
-    const { connectDB } = require('./config/db');
+    const { connectDB, isDbUnavailableError } = require('./config/db');
     await connectDB();
     dbConnected = true;
     console.log('✅ SQL Server connected');
   } catch (err) {
     dbConnected = false;
-    console.log('⚠️ SQL Server not connected, but server will still run');
+    const detail = isDbUnavailableError(err)
+      ? 'Azure SQL firewall or connectivity is blocking the connection. The API will continue to run, but database-backed routes will fail until access is restored.'
+      : 'Database connection failed during startup; the server will still run for non-database routes.';
+    console.warn('⚠️ SQL Server not connected, but server will still run');
+    console.warn(detail);
   }
 })();
 

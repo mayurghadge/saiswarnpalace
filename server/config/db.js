@@ -35,6 +35,11 @@ const dbConfig = {
 
 let poolPromise;
 
+function isDbUnavailableError(error) {
+  const message = error?.message || '';
+  return /Cannot open server|not allowed to access the server|firewall|Client with IP address|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|Login failed|connection/i.test(message);
+}
+
 function getConnectionInfo() {
   return {
     server: dbConfig.server,
@@ -56,10 +61,14 @@ async function connectDB() {
     return pool;
   } catch (error) {
     poolPromise = null;
-    console.error('❌ SQL Server Connection Error:', error.message);
+    const message = error?.message || String(error);
+    console.error('❌ SQL Server Connection Error:', message);
     console.error('   Connection info:', getConnectionInfo());
+    if (isDbUnavailableError(error)) {
+      console.warn('⚠️ Database is unavailable; continuing without a live SQL connection.');
+    }
     throw error;
   }
 }
 
-module.exports = { connectDB, sql };
+module.exports = { connectDB, sql, isDbUnavailableError };
