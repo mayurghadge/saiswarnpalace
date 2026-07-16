@@ -4,6 +4,12 @@ import { toast } from 'react-hot-toast';
 import { Lock, User, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 
+exports.adminLogin = async (req, res) => {
+  console.log("===== ADMIN LOGIN =====");
+  console.log(req.body);
+
+  try {
+
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
     email: '',
