@@ -8,6 +8,19 @@ const fs = require('fs');
 // Demo OTP store for local development since Users table has no OTP columns.
 const otpStore = new Map();
 
+function getUserColumnMap() {
+  return {
+    id: 'id',
+    name: 'name',
+    email: 'email',
+    phone: 'phone',
+    password: 'password',
+    isVerified: 'is_verified',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  };
+}
+
 function buildAuthErrorResponse(error) {
   const message = error?.message || '';
   const isAzureSqlFirewallIssue = /Cannot open server|not allowed to access the server|firewall|Client with IP address/i.test(message);
@@ -54,11 +67,12 @@ exports.register = async (req, res) => {
     }
     
     const pool = await connectDB();
+    const columns = getUserColumnMap();
     
     // Check if user already exists
     const checkResult = await pool.request()
       .input('email', sql.NVarChar, email)
-      .query('SELECT Id AS id FROM Users WHERE Email = @email');
+      .query(`SELECT ${columns.id} AS id FROM Users WHERE ${columns.email} = @email`);
     
     if (checkResult.recordset.length > 0) {
       return res.status(400).json({ message: 'User already exists with this email' });
@@ -74,15 +88,14 @@ exports.register = async (req, res) => {
     
     // Insert user
     const result = await pool.request()
-      .input('fullName', sql.NVarChar, name)
+      .input('name', sql.NVarChar, name)
       .input('email', sql.NVarChar, email)
       .input('phone', sql.NVarChar, phone)
-      .input('passwordHash', sql.NVarChar, hashedPassword)
-      .input('role', sql.NVarChar, 'customer')
+      .input('password', sql.NVarChar, hashedPassword)
       .query(`
-        INSERT INTO Users (FullName, Email, Phone, PasswordHash, Role, IsIdentityVerified)
-        OUTPUT inserted.Id AS id, inserted.FullName AS name, inserted.Email AS email, inserted.Phone AS phone, inserted.CreatedAt AS created_at
-        VALUES (@fullName, @email, @phone, @passwordHash, @role, 0)
+        INSERT INTO Users (name, email, phone, password, is_verified)
+        OUTPUT inserted.id AS id, inserted.name AS name, inserted.email AS email, inserted.phone AS phone, inserted.created_at AS created_at
+        VALUES (@name, @email, @phone, @password, 0)
       `);
     
     const user = result.recordset[0];
@@ -117,16 +130,17 @@ exports.verifyOTP = async (req, res) => {
     
     const pool = await connectDB();
     
+    const columns = getUserColumnMap();
     const result = await pool.request()
       .input('email', sql.NVarChar, email)
       .query(`
         SELECT
-          Id AS id,
-          FullName AS name,
-          Email AS email,
-          Phone AS phone
+          ${columns.id} AS id,
+          ${columns.name} AS name,
+          ${columns.email} AS email,
+          ${columns.phone} AS phone
         FROM Users
-        WHERE Email = @email
+        WHERE ${columns.email} = @email
       `);
     
     if (result.recordset.length === 0) {
@@ -150,8 +164,8 @@ exports.verifyOTP = async (req, res) => {
       .input('userId', sql.Int, user.id)
       .query(`
         UPDATE Users
-        SET IsIdentityVerified = 1
-        WHERE Id = @userId
+        SET ${getUserColumnMap().isVerified} = 1
+        WHERE ${getUserColumnMap().id} = @userId
       `);
 
     otpStore.delete(email.toLowerCase());
@@ -196,18 +210,19 @@ exports.login = async (req, res) => {
     
     const pool = await connectDB();
     
+    const columns = getUserColumnMap();
     const result = await pool.request()
       .input('email', sql.NVarChar, email)
       .query(`
         SELECT
-          Id AS id,
-          FullName AS name,
-          Email AS email,
-          Phone AS phone,
-          PasswordHash AS password_hash,
-          IsIdentityVerified AS is_identity_verified
+          ${columns.id} AS id,
+          ${columns.name} AS name,
+          ${columns.email} AS email,
+          ${columns.phone} AS phone,
+          ${columns.password} AS password_hash,
+          ${columns.isVerified} AS is_identity_verified
         FROM Users
-        WHERE Email = @email
+        WHERE ${columns.email} = @email
       `);
     
     if (result.recordset.length === 0) {
@@ -249,6 +264,7 @@ exports.login = async (req, res) => {
 
 // Get user profile
 exports.buildAuthErrorResponse = buildAuthErrorResponse;
+exports.getUserColumnMap = getUserColumnMap;
 
 exports.getProfile = async (req, res) => {
   try {
