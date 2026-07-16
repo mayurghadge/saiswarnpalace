@@ -1,5 +1,14 @@
 const { connectDB, sql } = require('../config/db');
 
+const DEFAULT_GOLD_RATES = {
+  gold_rate_18k: 11680,
+  gold_rate_22k: 14275,
+  gold_rate_24k: 15574,
+  silver_rate: 266,
+  gst_rate: 3,
+  wastage_rate: 10,
+};
+
 async function ensureProductExtraColumns(pool) {
   await pool.request().query(`
     IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'ItemCode')
@@ -120,15 +129,17 @@ exports.getGoldRates = async (req, res) => {
 
     const rates = result.recordset[0];
     if (!rates || (!rates.gold_rate_18k && !rates.gold_rate_22k && !rates.gold_rate_24k && !rates.silver_rate)) {
-      // An empty GoldRates table is valid during initial setup. The client keeps
-      // its configured defaults until an administrator saves the first rates.
-      return res.status(200).json({ rates: {} });
+      // An empty GoldRates table is valid during initial setup.
+      return res.status(200).json({ rates: DEFAULT_GOLD_RATES, usingDefaults: true });
     }
 
     res.status(200).json({ rates });
   } catch (error) {
     console.error('Get Gold Rates Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    // Rates are display-only data. Keep the storefront usable when the database
+    // is temporarily unavailable (for example, while an Azure firewall rule is
+    // being updated for the hosted API).
+    res.status(200).json({ rates: DEFAULT_GOLD_RATES, usingDefaults: true });
   }
 };
 
