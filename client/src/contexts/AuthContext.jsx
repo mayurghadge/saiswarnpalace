@@ -25,6 +25,9 @@ export const AuthProvider = ({ children }) => {
     if (message.includes('failed to fetch') || message.includes('network')) {
       return 'Unable to reach the backend API. Please configure VITE_API_URL to the live backend host.';
     }
+    if (message.includes('database connection unavailable') || message.includes('azure sql')) {
+      return 'The database is currently unavailable. Please contact the site administrator to restore Azure SQL access.';
+    }
     return error?.message || fallback;
   };
 

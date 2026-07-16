@@ -8,6 +8,21 @@ const fs = require('fs');
 // Demo OTP store for local development since Users table has no OTP columns.
 const otpStore = new Map();
 
+function buildAuthErrorResponse(error) {
+  const message = error?.message || '';
+  const isAzureSqlFirewallIssue = /Cannot open server|not allowed to access the server|firewall|Client with IP address/i.test(message);
+
+  return {
+    statusCode: isAzureSqlFirewallIssue ? 503 : 500,
+    payload: {
+      message: isAzureSqlFirewallIssue ? 'Database connection unavailable' : 'Server error',
+      error: isAzureSqlFirewallIssue
+        ? 'Azure SQL is currently blocking this request. Please allow the backend IP in the Azure firewall or restore database connectivity before trying again.'
+        : message,
+    },
+  };
+}
+
 async function ensureVerificationDocumentsTable(pool) {
   await pool.request().query(`
     IF OBJECT_ID('UserVerificationDocuments', 'U') IS NULL
@@ -86,7 +101,8 @@ exports.register = async (req, res) => {
     
   } catch (error) {
     console.error('Registration Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const { statusCode, payload } = buildAuthErrorResponse(error);
+    res.status(statusCode).json(payload);
   }
 };
 
@@ -164,7 +180,8 @@ process.env.JWT_SECRET,
     
   } catch (error) {
     console.error('OTP Verification Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const { statusCode, payload } = buildAuthErrorResponse(error);
+    res.status(statusCode).json(payload);
   }
 };
 
@@ -225,11 +242,14 @@ exports.login = async (req, res) => {
     
   } catch (error) {
     console.error('Login Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const { statusCode, payload } = buildAuthErrorResponse(error);
+    res.status(statusCode).json(payload);
   }
 };
 
 // Get user profile
+exports.buildAuthErrorResponse = buildAuthErrorResponse;
+
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -275,7 +295,8 @@ exports.getProfile = async (req, res) => {
     
   } catch (error) {
     console.error('Get Profile Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    const { statusCode, payload } = buildAuthErrorResponse(error);
+    res.status(statusCode).json(payload);
   }
 };
 

@@ -18,7 +18,10 @@ const Login = () => {
       toast.success('Login successful!');
       navigate('/');
     } catch (err) {
-      toast.error(err.message || 'Login failed');
+      const friendlyMessage = err?.message?.includes('Database connection unavailable')
+        ? 'The database is currently unavailable. Please try again later.'
+        : (err?.message || 'Login failed');
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }
