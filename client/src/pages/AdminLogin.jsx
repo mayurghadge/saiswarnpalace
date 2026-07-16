@@ -93,7 +93,7 @@ const AdminLogin = () => {
           </button>
         </form>
         <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-500">
-          <p><strong>Email:</strong> admin</p>
+          <p><strong>Email:</strong>admin@saiswarnpalace.com</p>
           <p><strong>Password:</strong> Ssp@277369</p>
         </div>
       </div>
