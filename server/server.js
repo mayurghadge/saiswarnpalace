@@ -161,7 +161,11 @@ app.get("/", (req, res) => {
   res.send("Sai Swarn Palace API is Running 🚀");
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📁 Uploads directory: ${path.join(__dirname, 'uploads')}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📁 Uploads directory: ${path.join(__dirname, 'uploads')}`);
+  });
+}
+
+module.exports = app;
