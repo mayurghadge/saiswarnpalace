@@ -9,20 +9,6 @@ exports.adminLogin = async (req, res) => {
   console.log(req.body);
 
   try {
-    const { email, password } = req.body;
-
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-      const token = generateToken({ email });
-      res.status(200).json({ token });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
