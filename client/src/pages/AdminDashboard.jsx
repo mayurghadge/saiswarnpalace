@@ -21,8 +21,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+const publicApiBaseUrl =
+  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/admin' : 'http://localhost:5000/api/admin');
+  import.meta.env.VITE_ADMIN_API_URL || `${publicApiBaseUrl.replace(/\/$/, '')}/admin`;
 const SERVER_BASE =
   import.meta.env.VITE_SERVER_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
 const ADMIN_AUTO_REFRESH_MS = 20000;
@@ -451,11 +453,12 @@ const AdminDashboard = () => {
       setCoupons(couponsData.coupons || []);
 
       if (statsData.goldRates) {
-        setGoldRate18k(statsData.goldRates.gold_rate_18k);
-        setGoldRate22k(statsData.goldRates.gold_rate_22k);
-        setGoldRate24k(statsData.goldRates.gold_rate_24k);
-        setSilverRate(statsData.goldRates.silver_rate || 266);
-        setGstRate(statsData.goldRates.gst_rate);
+        const rates = statsData.goldRates;
+        if (rates.gold_rate_18k != null) setGoldRate18k(Number(rates.gold_rate_18k) || 0);
+        if (rates.gold_rate_22k != null) setGoldRate22k(Number(rates.gold_rate_22k) || 0);
+        if (rates.gold_rate_24k != null) setGoldRate24k(Number(rates.gold_rate_24k) || 0);
+        if (rates.silver_rate != null) setSilverRate(Number(rates.silver_rate) || 0);
+        if (rates.gst_rate != null) setGstRate(Number(rates.gst_rate) || 0);
       }
     } catch (err) {
       console.error(err);

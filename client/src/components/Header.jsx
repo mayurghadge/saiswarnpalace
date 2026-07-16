@@ -68,7 +68,7 @@ const Header = () => {
             onMouseLeave={() => setGoldRateMenuOpen(false)}
           >
             <span className="text-gray-700 font-medium">Today's Rate : Gold Price 22KT/g</span>
-            <span className="text-[#9D7E2A] font-bold">₹{goldRate22k.toLocaleString()}</span>
+            <span className="text-[#9D7E2A] font-bold">₹{Number(goldRate22k || 0).toLocaleString()}</span>
             <ChevronDown size={14} className="text-gray-500" />
             
             {/* Gold Rate Dropdown */}
@@ -77,19 +77,19 @@ const Header = () => {
                 <div className="py-2">
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Gold Price 22KT/1g</span>
-                    <span className="text-[#9D7E2A] font-bold">₹{goldRate22k.toLocaleString()}</span>
+                    <span className="text-[#9D7E2A] font-bold">₹{Number(goldRate22k || 0).toLocaleString()}</span>
                   </div>
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Gold Price 24KT/1g</span>
-                    <span className="text-[#9D7E2A] font-bold">₹{goldRate24k.toLocaleString()}</span>
+                    <span className="text-[#9D7E2A] font-bold">₹{Number(goldRate24k || 0).toLocaleString()}</span>
                   </div>
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Gold Price 18KT/1g</span>
-                    <span className="text-[#9D7E2A] font-bold">₹{goldRate18k.toLocaleString()}</span>
+                    <span className="text-[#9D7E2A] font-bold">₹{Number(goldRate18k || 0).toLocaleString()}</span>
                   </div>
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Silver Price</span>
-                    <span className="text-[#9D7E2A] font-bold">₹{silverRate.toLocaleString()}</span>
+                    <span className="text-[#9D7E2A] font-bold">₹{Number(silverRate || 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
