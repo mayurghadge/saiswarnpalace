@@ -22,6 +22,8 @@ const isFallbackAdminLogin = (email = '', password = '') => {
   );
 };
 
+exports.isFallbackAdminLogin = isFallbackAdminLogin;
+
 async function ensureVerificationDocumentsTable(pool) {
   await pool.request().query(`
     IF OBJECT_ID('UserVerificationDocuments', 'U') IS NULL
@@ -458,6 +460,18 @@ exports.adminLogin = async (req, res) => {
     }
 
     const fallbackLogin = isFallbackAdminLogin(email, password);
+
+    // The login page displays these configured emergency credentials.  They
+    // must remain usable even when an older Admins row has a different stored
+    // password, otherwise the database row incorrectly masks the fallback.
+    if (fallbackLogin) {
+      const token = createAdminToken({ id: 1, email: fallbackAdminEmail, name: 'Admin' });
+      return res.status(200).json({
+        message: 'Login successful',
+        token,
+        admin: { id: 1, name: 'Admin', email: fallbackAdminEmail }
+      });
+    }
 
     try {
       const pool = await connectDB();
