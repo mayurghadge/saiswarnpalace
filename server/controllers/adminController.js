@@ -4,6 +4,24 @@ const jwt = require('jsonwebtoken');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 
+const fallbackAdminEmail = (process.env.ADMIN_EMAIL || 'admin@saiswarnpalace.com').toLowerCase();
+const fallbackAdminPassword = process.env.ADMIN_PASSWORD || 'Ssp@277369';
+
+const createAdminToken = (admin) => jwt.sign(
+  { id: admin?.id || 1, email: admin?.email || fallbackAdminEmail, role: 'admin' },
+  process.env.JWT_SECRET || 'your-secret-key',
+  { expiresIn: '7d' }
+);
+
+const isFallbackAdminLogin = (email = '', password = '') => {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedPassword = String(password || '');
+  return (
+    (normalizedEmail === fallbackAdminEmail || normalizedEmail === 'admin@saiswarnpalace' || normalizedEmail === 'admin') &&
+    normalizedPassword === fallbackAdminPassword
+  );
+};
+
 async function ensureVerificationDocumentsTable(pool) {
   await pool.request().query(`
     IF OBJECT_ID('UserVerificationDocuments', 'U') IS NULL
@@ -434,75 +452,76 @@ exports.deleteCoupon = async (req, res) => {
 exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    //const fallbackEmail = 'admin';
-    //const fallbackPassword = 'Ssp@277369';
-    //const isFallbackLogin = (email === fallbackEmail || email === 'admin@saiswarnpalace') && password === fallbackPassword;
 
-    const pool = await connectDB();
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
-    let admin = null;
+    const fallbackLogin = isFallbackAdminLogin(email, password);
+
     try {
-      const result = await pool.request()
-        .input('email', sql.NVarChar, email)
-        .query('SELECT * FROM Admins WHERE email = @email');
+      const pool = await connectDB();
+      let admin = null;
 
-      if (result.recordset.length > 0) {
-        admin = result.recordset[0];
+      try {
+        const result = await pool.request()
+          .input('email', sql.NVarChar, email)
+          .query('SELECT * FROM Admins WHERE email = @email');
+
+        if (result.recordset.length > 0) {
+          admin = result.recordset[0];
+        }
+      } catch (dbError) {
+        console.error('Admin Login DB Error:', dbError);
+        if (fallbackLogin) {
+          const token = createAdminToken({ id: 1, email, name: 'Admin' });
+          return res.status(200).json({
+            message: 'Login successful',
+            token,
+            admin: { id: 1, name: 'Admin', email }
+          });
+        }
+        return res.status(503).json({ message: 'Database unavailable. Please try again later.' });
       }
+
+      if (!admin) {
+        if (fallbackLogin) {
+          const token = createAdminToken({ id: 1, email, name: 'Admin' });
+          return res.status(200).json({
+            message: 'Login successful',
+            token,
+            admin: { id: 1, name: 'Admin', email }
+          });
+        }
+
+        return res.status(404).json({ message: 'Admin not found' });
+      }
+
+      const isMatch = await bcrypt.compare(password, admin.password);
+      const isPlainTextMatch = admin.password && String(admin.password) === String(password);
+      if (!isMatch && !isPlainTextMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const token = createAdminToken(admin);
+
+      res.status(200).json({
+        message: 'Login successful',
+        token,
+        admin: { id: admin.id, name: admin.name, email: admin.email }
+      });
     } catch (dbError) {
-      //if (isFallbackLogin) {
-        const token = jwt.sign(
-          { id: 1, email, role: 'admin' },
-          process.env.JWT_SECRET || 'your-secret-key',
-          { expiresIn: '7d' }
-        );
-
-        return res.status(200).json({
-          message: 'Login successful',
-          token,
-          admin: { id: 1, name: 'Admin', email }
-        });
-      //}
-
       console.error('Admin Login DB Error:', dbError);
-      return res.status(500).json({ message: 'Server error', error: dbError.message });
-    }
-
-    if (!admin) {
-      if (isFallbackLogin) {
-        const token = jwt.sign(
-          { id: 1, email, role: 'admin' },
-          process.env.JWT_SECRET || 'your-secret-key',
-          { expiresIn: '7d' }
-        );
-
+      if (fallbackLogin) {
+        const token = createAdminToken({ id: 1, email, name: 'Admin' });
         return res.status(200).json({
           message: 'Login successful',
           token,
           admin: { id: 1, name: 'Admin', email }
         });
       }
-
-      return res.status(404).json({ message: 'Admin not found' });
+      return res.status(503).json({ message: 'Database unavailable. Please try again later.' });
     }
-
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: admin.id, email: admin.email, role: 'admin' },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    res.status(200).json({
-      message: 'Login successful',
-      token,
-      admin: { id: admin.id, name: admin.name, email: admin.email }
-    });
-
   } catch (error) {
     console.error('Admin Login Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
