@@ -5,7 +5,7 @@ import { useGoldRate } from '../contexts/GoldRateContext';
 import { toast } from 'react-hot-toast';
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_800,h_800,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg';
 
 const Products = () => {
