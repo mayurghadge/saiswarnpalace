@@ -4,7 +4,7 @@ require('dotenv').config();
 const dbDriver = process.env.DB_DRIVER || 'tedious';
 
 const dbConfig = {
-  server: process.env.DB_SERVER || 'saiswarnserver2026.database.windows.net',
+  server: process.env.DB_SERVER || 'localhost',
   database: process.env.DB_NAME || 'SaiSwarnPalace',
   user: process.env.DB_USER || 'sa',
   password: process.env.DB_PASSWORD || 'Sspnp@277369',
