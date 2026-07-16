@@ -29,7 +29,15 @@ const AdminLogin = () => {
       navigate('/admin');
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || 'Invalid username or password!');
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+      if (status === 405) {
+        toast.error('The deployed API is not configured for admin login. Redeploy the latest Vercel changes.');
+      } else if (status >= 500 || !status) {
+        toast.error('Unable to reach the admin API. Please try again after the deployment is ready.');
+      } else {
+        toast.error(message || 'Invalid username or password!');
+      }
     } finally {
       setIsLoading(false);
     }
