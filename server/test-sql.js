@@ -12,6 +12,7 @@ const config = {
   }
 };
 
+
 console.log('🔌 Testing SQL Connection...');
 console.log('DB Server:', config.server);
 console.log('DB Name:', config.database);
