@@ -1,6 +1,46 @@
 const { connectDB, sql } = require("../config/db");
 
 // ===============================
+// Ensure Orders table has shipping address columns
+// ===============================
+async function ensureOrdersTable(pool) {
+  await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerName')
+    BEGIN
+      ALTER TABLE Orders ADD CustomerName NVARCHAR(100) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerPhone')
+    BEGIN
+      ALTER TABLE Orders ADD CustomerPhone NVARCHAR(20) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerEmail')
+    BEGIN
+      ALTER TABLE Orders ADD CustomerEmail NVARCHAR(100) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'ShippingAddress')
+    BEGIN
+      ALTER TABLE Orders ADD ShippingAddress NVARCHAR(MAX) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'ShippingCity')
+    BEGIN
+      ALTER TABLE Orders ADD ShippingCity NVARCHAR(100) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'ShippingState')
+    BEGIN
+      ALTER TABLE Orders ADD ShippingState NVARCHAR(100) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'ShippingPincode')
+    BEGIN
+      ALTER TABLE Orders ADD ShippingPincode NVARCHAR(20) NULL
+    END
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'PaymentMethod')
+    BEGIN
+      ALTER TABLE Orders ADD PaymentMethod NVARCHAR(50) NULL
+    END
+  `);
+}
+
+// ===============================
 // Create Order
 // POST /api/orders
 // ===============================
@@ -20,6 +60,7 @@ exports.createOrder = async (req, res) => {
     } = req.body;
 
     const pool = await connectDB();
+    await ensureOrdersTable(pool);
     const userId = req.user?.id || null;
     const orderNumber = `ORD-${Date.now()}`;
 
@@ -30,10 +71,18 @@ exports.createOrder = async (req, res) => {
       .input("orderNumber", sql.NVarChar, orderNumber)
       .input("totalAmount", sql.Decimal(18, 2), totalAmount)
       .input("status", sql.NVarChar, "pending")
+      .input("customerName", sql.NVarChar, customerName)
+      .input("customerPhone", sql.NVarChar, phone)
+      .input("customerEmail", sql.NVarChar, email)
+      .input("shippingAddress", sql.NVarChar, address)
+      .input("shippingCity", sql.NVarChar, city)
+      .input("shippingState", sql.NVarChar, state)
+      .input("shippingPincode", sql.NVarChar, pincode)
+      .input("paymentMethod", sql.NVarChar, paymentMethod)
       .query(`
-        INSERT INTO Orders (UserId, OrderNumber, TotalAmount, Status, CreatedAt)
+        INSERT INTO Orders (UserId, OrderNumber, TotalAmount, Status, CreatedAt, CustomerName, CustomerPhone, CustomerEmail, ShippingAddress, ShippingCity, ShippingState, ShippingPincode, PaymentMethod)
         OUTPUT INSERTED.Id AS id
-        VALUES (@userId, @orderNumber, @totalAmount, @status, GETDATE())
+        VALUES (@userId, @orderNumber, @totalAmount, @status, GETDATE(), @customerName, @customerPhone, @customerEmail, @shippingAddress, @shippingCity, @shippingState, @shippingPincode, @paymentMethod)
       `);
 
     const orderId = orderResult.recordset[0].id;
@@ -81,6 +130,7 @@ exports.getMyOrders = async (req, res) => {
     }
 
     const pool = await connectDB();
+    await ensureOrdersTable(pool);
 
     const result = await pool
       .request()
@@ -91,7 +141,15 @@ exports.getMyOrders = async (req, res) => {
           OrderNumber AS order_number,
           TotalAmount AS total,
           Status AS order_status,
-          CreatedAt AS created_at
+          CreatedAt AS created_at,
+          CustomerName,
+          CustomerPhone,
+          CustomerEmail,
+          ShippingAddress,
+          ShippingCity,
+          ShippingState,
+          ShippingPincode,
+          PaymentMethod
         FROM Orders
         WHERE UserId = @user_id
         ORDER BY CreatedAt DESC
@@ -113,6 +171,7 @@ exports.getMyOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const pool = await connectDB();
+    await ensureOrdersTable(pool);
 
     const order = await pool
       .request()
@@ -123,7 +182,15 @@ exports.getOrderById = async (req, res) => {
           OrderNumber AS order_number,
           TotalAmount AS total,
           Status AS order_status,
-          CreatedAt AS created_at
+          CreatedAt AS created_at,
+          CustomerName,
+          CustomerPhone,
+          CustomerEmail,
+          ShippingAddress,
+          ShippingCity,
+          ShippingState,
+          ShippingPincode,
+          PaymentMethod
         FROM Orders
         WHERE Id = @id
       `);
@@ -165,6 +232,7 @@ exports.getOrderById = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const pool = await connectDB();
+    await ensureOrdersTable(pool);
 
     const result = await pool.request().query(`
       SELECT 
@@ -173,6 +241,14 @@ exports.getOrders = async (req, res) => {
         o.TotalAmount AS total,
         o.Status AS order_status,
         o.CreatedAt AS created_at,
+        o.CustomerName,
+        o.CustomerPhone,
+        o.CustomerEmail,
+        o.ShippingAddress,
+        o.ShippingCity,
+        o.ShippingState,
+        o.ShippingPincode,
+        o.PaymentMethod,
         u.FullName AS user_name,
         u.Email AS user_email,
         u.Phone AS user_phone

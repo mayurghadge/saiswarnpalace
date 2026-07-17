@@ -9,7 +9,7 @@ import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
 
 const Checkout = () => {
-  const { cart, cartTotal } = useCart();
+  const { cart, cartTotal, clearCart } = useCart();
   const { gstRate } = useGoldRate();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -142,6 +142,7 @@ const Checkout = () => {
   const completeOrder = async (paymentMethod) => {
   try {
     // Save address if new
+    let updatedAddresses;
     if (!selectedAddress) {
       const newAddress = {
         id: Date.now(),
@@ -153,7 +154,7 @@ const Checkout = () => {
         pincode: form.pincode,
         isDefault: addresses.length === 0
       };
-      const updatedAddresses = [...addresses, newAddress];
+      updatedAddresses = [...addresses, newAddress];
       setAddresses(updatedAddresses);
       localStorage.setItem('userAddresses', JSON.stringify(updatedAddresses));
     }
@@ -170,6 +171,12 @@ const Checkout = () => {
       totalAmount: total,
       items: displayCart
     });
+
+    // Clear cart and coupon
+    clearCart();
+    saveAppliedCoupon(null);
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
 
     navigate("/payment-success", {
       state: {

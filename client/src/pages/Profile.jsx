@@ -53,10 +53,18 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Demo addresses
-  const [addresses, setAddresses] = useState([
-    { id: 1, name: 'Ghadge Mayur', phone: '916300399806', address: 'Market streetmnbvcxwef', city: 'narasannapeta', state: 'Andhra Pradesh', pincode: '532421', isDefault: true },
-  ]);
+  // Load addresses from localStorage
+  const [addresses, setAddresses] = useState(() => {
+    const saved = localStorage.getItem('userAddresses');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
 
   // Orders will be populated from the customer order API when checkout is connected.
   const orders = [];
@@ -79,21 +87,24 @@ const Profile = () => {
 
   const handleSaveAddress = (e) => {
     e.preventDefault();
+    let newAddresses;
     if (editingAddress) {
-      setAddresses(addresses.map(addr => 
+      newAddresses = addresses.map(addr => 
         addr.id === editingAddress.id ? 
         { ...addressForm, id: editingAddress.id } : 
         (addressForm.isDefault ? { ...addr, isDefault: false } : addr)
-      ));
+      );
       toast.success('Address updated!');
     } else {
       const newId = Date.now();
-      setAddresses([
+      newAddresses = [
         ...(addressForm.isDefault ? addresses.map(addr => ({ ...addr, isDefault: false })) : addresses),
         { ...addressForm, id: newId }
-      ]);
+      ];
       toast.success('Address added!');
     }
+    setAddresses(newAddresses);
+    localStorage.setItem('userAddresses', JSON.stringify(newAddresses));
     setShowAddressModal(false);
     setAddressForm({ name: '', phone: '', address: '', city: '', state: '', pincode: '', isDefault: false });
     setEditingAddress(null);

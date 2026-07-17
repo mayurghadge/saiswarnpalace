@@ -18,8 +18,6 @@ const allowedOrigins = [
   "https://saiswarnpalace.vercel.app"
 ];
 
-app.use("/api/orders", orderRoutes);
-
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -35,6 +33,9 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Use order routes AFTER cors and json middleware
+app.use("/api/orders", orderRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -145,7 +146,6 @@ app.put('/api/admin/users/:id/proofs/:proofId/reject', adminController.rejectPro
 app.get('/api/admin/orders', adminController.getOrders);
 app.get('/api/admin/orders/:id', adminController.getOrder);
 app.put('/api/admin/orders/:id/status', adminController.updateOrderStatus);
-app.post('/api/orders', authMiddleware, orderController.createOrder);
 
 // Admin Contacts
 app.get('/api/admin/contacts', adminController.getContacts);
