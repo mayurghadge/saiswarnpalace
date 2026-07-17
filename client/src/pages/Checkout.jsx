@@ -118,13 +118,17 @@ const Checkout = () => {
   };
 
   // Load Razorpay script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
+  const loadRazorpay = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+
     document.body.appendChild(script);
-    return () => document.body.removeChild(script);
-  }, []);
+  });
+};
 
   useEffect(() => {
     if (!appliedCoupon) {
@@ -168,9 +172,11 @@ const Checkout = () => {
      toast.success("Coupon removed");
   };
 
-  const handleRazorpayPayment = () => {
-    if (!window.Razorpay) {
-      toast.error('Razorpay SDK not loaded');
+  const handleRazorpayPayment = async () => {
+    const loaded = await loadRazorpay();
+
+    if (!loaded) {
+      toast.error('Failed to load Razorpay');
       return;
     }
 
