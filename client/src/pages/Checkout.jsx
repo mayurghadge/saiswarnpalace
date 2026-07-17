@@ -26,14 +26,14 @@ const Checkout = () => {
 
   const [step, setStep] = useState('shipping'); // 'shipping' or 'payment'
   const [form, setForm] = useState({
-    name: 'ghadge mayur',
-    phone: '6304399806',
-    email: '',
-    address: 'market streetmnbvcxwefg',
-    city: 'narasannapeta',
-    state: 'Andhra Pradesh',
-    pincode: '532421',
-    paymentMethod: 'cod',
+    name: 'na',
+    phone: 'NA',
+    email: 'NA',
+    address: 'NA',
+    city: 'NA',
+    state: 'NA',
+    pincode: 'NA',
+    paymentMethod: 'NA',
     billingSameAsShipping: true
   });
 
