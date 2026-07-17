@@ -26,18 +26,29 @@ const Checkout = () => {
   
   const total = subtotal + tax + shipping - discountAmount;
 
-  // Load saved addresses from localStorage
+  // Load addresses from localStorage
   const [addresses, setAddresses] = useState(() => {
     const saved = localStorage.getItem('userAddresses');
     return saved ? JSON.parse(saved) : [];
   });
   const [selectedAddress, setSelectedAddress] = useState(null);
 
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [addressForm, setAddressForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    isDefault: false
+  });
+
   const [step, setStep] = useState('shipping'); // 'shipping' or 'payment'
   const [form, setForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
-    email: user?.email || '',
     address: '',
     city: '',
     state: '',
@@ -62,6 +73,47 @@ const Checkout = () => {
       }));
     }
   }, [addresses]);
+
+  const handleSaveAddress = (e) => {
+    e.preventDefault();
+    let newAddresses;
+    if (editingAddress) {
+      newAddresses = addresses.map(addr => 
+        addr.id === editingAddress.id ? 
+        { ...addressForm, id: editingAddress.id } : 
+        (addressForm.isDefault ? { ...addr, isDefault: false } : addr)
+      );
+      toast.success('Address updated!');
+    } else {
+      const newId = Date.now();
+      newAddresses = [
+        ...(addressForm.isDefault ? addresses.map(addr => ({ ...addr, isDefault: false })) : addresses),
+        { ...addressForm, id: newId }
+      ];
+      toast.success('Address added!');
+    }
+    setAddresses(newAddresses);
+    localStorage.setItem('userAddresses', JSON.stringify(newAddresses));
+    
+    // Auto-select the new/edited address
+    const addressToSelect = editingAddress 
+      ? newAddresses.find(a => a.id === editingAddress.id)
+      : newAddresses.find(a => a.id === newId);
+    setSelectedAddress(addressToSelect);
+    setForm(prev => ({
+      ...prev,
+      name: addressToSelect.name,
+      phone: addressToSelect.phone,
+      address: addressToSelect.address,
+      city: addressToSelect.city,
+      state: addressToSelect.state,
+      pincode: addressToSelect.pincode
+    }));
+
+    setShowAddressModal(false);
+    setAddressForm({ name: user?.name || '', phone: user?.phone || '', address: '', city: '', state: '', pincode: '', isDefault: false });
+    setEditingAddress(null);
+  };
 
   // Load Razorpay script
   useEffect(() => {
