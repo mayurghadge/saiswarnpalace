@@ -71,6 +71,12 @@ exports.applyCoupon = async (req, res) => {
     }
 
     const coupon = result.recordset[0];
+    console.log("Coupon from DB:", coupon);
+    console.log("is_active =", coupon.is_active);
+    console.log("valid_from =", coupon.valid_from);
+    console.log("valid_to =", coupon.valid_to);
+    console.log("usage_limit =", coupon.usage_limit);
+    console.log("used_count =", coupon.used_count);
     console.log('Coupon found:', JSON.stringify(coupon, null, 2));
     const now = new Date();
 
