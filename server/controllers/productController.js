@@ -74,25 +74,31 @@ exports.getProduct = async (req, res) => {
     const result = await pool.request()
       .input('id', sql.Int, id)
       .query(`
-        SELECT 
-          p.Id AS id,
-          p.Name AS name,
-          p.Description AS description,
-          p.CategoryId AS category_id,
-          p.Weight AS weight,
-          p.Purity AS purity,
-          p.WastagePercentage AS wastage_percentage,
-          p.MakingChargesPerGram AS making_charges,
-          p.FixedMakingCharge AS fixed_making_charge,
-          p.ItemCode AS item_code,
-          p.HUIDHallmark AS huid_hallmark,
-          p.IsAvailable AS is_active,
-          p.ImageURL AS images,
-          p.CreatedAt AS created_at,
-          c.Name AS category_name
-        FROM Products p
-        LEFT JOIN Categories c ON p.CategoryId = c.Id
-        WHERE p.Id = @id AND p.IsAvailable = 1
+        SELECT
+         p.Id AS id,
+         p.Name AS name,
+         p.Description AS description,
+         p.CategoryId AS category_id,
+         c.Name AS category_name,
+         p.Material AS material,
+         p.Style AS style,
+         p.Gender AS gender,
+         p.Occasion AS occasion,
+         p.Collection AS collection,
+         p.MetalColor AS metal_color,
+         p.Weight AS weight,
+         p.Purity AS purity,
+         p.WastagePercentage AS wastage_percentage,
+         p.MakingChargesPerGram AS making_charges,
+         p.FixedMakingCharge AS fixed_making_charge,
+         p.DiamondPrice AS diamond_price,
+         p.ItemCode AS item_code,
+         p.HUIDHallmark AS huid_hallmark,
+         p.ImageURL AS images
+        FROM dbo.Products AS p
+        LEFT JOIN dbo.Categories AS c
+          ON c.Id = p.CategoryId
+        WHERE p.IsAvailable = 1
       `);
     
     if (result.recordset.length === 0) {

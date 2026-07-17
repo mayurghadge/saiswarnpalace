@@ -26,6 +26,34 @@ const formatLabel = (value = '') =>
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const categoryFilter =
+    searchParams.get('category') || '';
+
+  const materialFilter =
+    searchParams.get('material') || '';
+
+  const styleFilter =
+    searchParams.get('style') || '';
+
+  const genderFilter =
+    searchParams.get('gender') || '';
+
+  const occasionFilter =
+    searchParams.get('occasion') || '';
+
+  const collectionFilter =
+    searchParams.get('collection') || '';
+
+  const metalColorFilter =
+    searchParams.get('metalColor') || '';
+
+  const minPrice = Number(
+    searchParams.get('minPrice') || 0
+);
+
+const maxPrice = Number(
+  searchParams.get('maxPrice') || 0
+);
   const categoryParam = searchParams.get('category') || '';
   const menuParam = searchParams.get('menu') || '';
 
@@ -197,134 +225,122 @@ const Products = () => {
   };
 
   const filteredProducts = products.filter(
-    (product) => {
-      const searchValue = search
-        .trim()
-        .toLowerCase();
+  (product) => {
+    const estimate =
+      calculateProductEstimate(product);
 
-      const productName = String(
-        product.name || product.Name || ''
-      ).toLowerCase();
+    const calculatedPrice = Number(
+      estimate.estimatedTotal || 0
+    );
 
-      const productDescription = String(
-        product.description ||
-          product.Description ||
-          ''
-      ).toLowerCase();
+    const searchValue =
+      normalizeFilter(search);
 
-      const productCode = String(
-        product.item_code ||
-          product.ItemCode ||
-          ''
-      ).toLowerCase();
-
-      const matchesSearch =
-        !searchValue ||
-        productName.includes(searchValue) ||
-        productDescription.includes(searchValue) ||
-        productCode.includes(searchValue);
-
-      if (!selectedCategory) {
-        return matchesSearch;
-      }
-
-      const selectedValue =
-        normalizeValue(selectedCategory);
-
-      const selectedIsId =
-        /^\d+$/.test(selectedCategory);
-
-      const selectedCategoryRecord =
-        categories.find((category) => {
-          const categoryId =
-            category.id ??
-            category.category_id ??
-            category.CategoryID;
-
-          return (
-            String(categoryId) ===
-            String(selectedCategory)
-          );
-        });
-
-      const selectedCategoryName =
-        normalizeValue(
-          selectedCategoryRecord?.name ||
-            selectedCategoryRecord?.category_name ||
-            selectedCategoryRecord?.CategoryName ||
-            ''
-        );
-
-      const productCategoryId = String(
-        product.category_id ??
-          product.CategoryID ??
-          product.categoryId ??
-          ''
-      );
-
-      const productValues = [
-        product.category,
-        product.category_name,
-        product.CategoryName,
-        product.subcategory,
-        product.subcategory_name,
-        product.SubcategoryName,
-        product.type,
-        product.product_type,
-        product.style,
-        product.collection,
-        product.occasion,
-        product.gender,
-        product.material,
-        product.metal_type,
+    const searchableText = normalizeFilter(
+      [
         product.name,
-        product.Name,
+        product.description,
+        product.item_code
       ]
         .filter(Boolean)
-        .map(normalizeValue);
+        .join(' ')
+    );
 
-      let matchesCategory = false;
+    const productCategory = normalizeFilter(
+      product.category_name ||
+      product.category ||
+      ''
+    );
 
-      if (selectedIsId) {
-        matchesCategory =
-          productCategoryId ===
-            String(selectedCategory) ||
-          Boolean(
-            selectedCategoryName &&
-              productValues.some(
-                (value) =>
-                  value === selectedCategoryName ||
-                  value.includes(
-                    selectedCategoryName
-                  )
-              )
-          );
-      } else {
-        matchesCategory = productValues.some(
-          (value) =>
-            value === selectedValue ||
-            value.includes(selectedValue) ||
-            selectedValue.includes(value)
-        );
-      }
+    const productMaterial = normalizeFilter(
+      product.material ||
+      product.effective_material ||
+      ''
+    );
 
-      const normalizedMenu =
-        normalizeValue(menuParam);
+    const productStyle = normalizeFilter(
+      product.style || ''
+    );
 
-      const matchesMenu =
-        !menuParam ||
-        normalizedMenu === 'all-jewellery' ||
-        productValues.some((value) =>
-          value.includes(normalizedMenu)
-        );
+    const productGender = normalizeFilter(
+      product.gender || ''
+    );
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesMenu
-      );
-    }
-  );
+    const productOccasion = normalizeFilter(
+      product.occasion || ''
+    );
+
+    const productCollection = normalizeFilter(
+      product.collection || ''
+    );
+
+    const productMetalColor = normalizeFilter(
+      product.metal_color ||
+      product.metalColor ||
+      ''
+    );
+
+    const matchesSearch =
+      !searchValue ||
+      searchableText.includes(searchValue);
+
+    const matchesCategory =
+      !categoryFilter ||
+      productCategory ===
+        normalizeFilter(categoryFilter);
+
+    const matchesMaterial =
+      !materialFilter ||
+      productMaterial ===
+        normalizeFilter(materialFilter);
+
+    const matchesStyle =
+      !styleFilter ||
+      productStyle ===
+        normalizeFilter(styleFilter);
+
+    const matchesGender =
+      !genderFilter ||
+      productGender ===
+        normalizeFilter(genderFilter);
+
+    const matchesOccasion =
+      !occasionFilter ||
+      productOccasion ===
+        normalizeFilter(occasionFilter);
+
+    const matchesCollection =
+      !collectionFilter ||
+      productCollection ===
+        normalizeFilter(collectionFilter);
+
+    const matchesMetalColor =
+      !metalColorFilter ||
+      productMetalColor ===
+        normalizeFilter(metalColorFilter);
+
+    const matchesMinimumPrice =
+      !minPrice ||
+      calculatedPrice >= minPrice;
+
+    const matchesMaximumPrice =
+      !maxPrice ||
+      calculatedPrice <= maxPrice;
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMaterial &&
+      matchesStyle &&
+      matchesGender &&
+      matchesOccasion &&
+      matchesCollection &&
+      matchesMetalColor &&
+      matchesMinimumPrice &&
+      matchesMaximumPrice
+    );
+  }
+);
 
   if (loading) {
     return (
