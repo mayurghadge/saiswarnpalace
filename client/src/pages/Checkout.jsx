@@ -113,16 +113,33 @@ const Checkout = () => {
     rzp1.open();
   };
 
-  const completeOrder = (paymentMethod) => {
-    navigate('/payment-success', {
+  const completeOrder = async (paymentMethod) => {
+  try {
+    await api.post("/orders", {
+      customerName: form.name,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      paymentMethod,
+      totalAmount: total,
+      items: displayCart
+    });
+
+    navigate("/payment-success", {
       state: {
         paymentMethod,
         total,
         customerName: form.name,
       },
     });
-  };
 
+  } catch (error) {
+    toast.error("Failed to save order");
+  }
+};
   const handleCodOrder = () => {
     toast.success('Order placed. Please pay when your order is delivered.');
     completeOrder('Cash on Delivery');

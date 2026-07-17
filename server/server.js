@@ -1,3 +1,5 @@
+const orderController = require('./controllers/orderController');
+const orderRoutes = require("./routes/orderRoutes");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require('dotenv');
@@ -15,6 +17,8 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   "https://saiswarnpalace.vercel.app"
 ];
+
+app.use("/api/orders", orderRoutes);
 
 app.use(
   cors({
@@ -82,6 +86,7 @@ app.get('/api/products/:id', productController.getProduct);
 app.get('/api/categories', productController.getCategories);
 app.get('/api/gold-rates', productController.getGoldRates);
 
+
 // Public User Routes
 app.post('/api/users/register', userController.register);
 app.post('/api/users/login', userController.login);
@@ -140,6 +145,7 @@ app.put('/api/admin/users/:id/proofs/:proofId/reject', adminController.rejectPro
 app.get('/api/admin/orders', adminController.getOrders);
 app.get('/api/admin/orders/:id', adminController.getOrder);
 app.put('/api/admin/orders/:id/status', adminController.updateOrderStatus);
+app.post('/api/orders', authMiddleware, orderController.createOrder);
 
 // Admin Contacts
 app.get('/api/admin/contacts', adminController.getContacts);
