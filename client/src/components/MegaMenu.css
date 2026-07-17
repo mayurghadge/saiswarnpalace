@@ -1,0 +1,151 @@
+.main-navigation {
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e5;
+  z-index: 1000;
+}
+
+.menu-container {
+  display: flex;
+  align-items: center;
+  max-width: 1400px;
+  min-height: 68px;
+  margin: auto;
+  padding: 0 40px;
+  gap: 35px;
+}
+
+.menu-item {
+  position: static;
+}
+
+.menu-button {
+  min-height: 68px;
+  padding: 0 5px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #101b2b;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-button:hover,
+.menu-button.active {
+  color: #d3a21b;
+  border-bottom-color: #d3a21b;
+}
+
+.menu-arrow {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 18px;
+}
+
+.mega-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: min(1200px, 94%);
+  padding: 38px;
+  background: white;
+  border-top: 3px solid #d5a622;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+  transform: translateX(-50%);
+  display: flex;
+  gap: 40px;
+}
+
+.mega-menu-grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 35px;
+}
+
+.mega-menu-group h3 {
+  margin: 0 0 20px;
+  color: #101b2b;
+  font-size: 17px;
+}
+
+.mega-menu-group a {
+  display: block;
+  margin-bottom: 14px;
+  color: #39475a;
+  font-size: 16px;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.mega-menu-group a:hover {
+  color: #d3a21b;
+  transform: translateX(4px);
+}
+
+.mega-menu-special {
+  width: 210px;
+  min-height: 200px;
+  padding: 25px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #78101a, #b41f2c);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.mega-menu-special span {
+  margin-bottom: 12px;
+  color: #f5d574;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.mega-menu-special strong {
+  margin-bottom: 20px;
+  font-family: Georgia, serif;
+  font-size: 26px;
+}
+
+.mega-menu-special a {
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .menu-container {
+    overflow-x: auto;
+    padding: 0 15px;
+    gap: 20px;
+  }
+
+  .menu-button {
+    white-space: nowrap;
+  }
+
+  .mega-menu {
+    position: fixed;
+    top: 130px;
+    max-height: calc(100vh - 130px);
+    overflow-y: auto;
+    padding: 25px;
+  }
+
+  .mega-menu-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mega-menu-special {
+    display: none;
+  }
+}
+
+@media (max-width: 550px) {
+  .mega-menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
