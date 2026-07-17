@@ -16,6 +16,7 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || '');
+  const [search, setSearch] = useState('');
   const { addToCart, addToWishlist } = useCart();
   const { calculateProductEstimate } = useGoldRate();
 
