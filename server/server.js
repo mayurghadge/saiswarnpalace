@@ -215,6 +215,11 @@ app.get(
   categoryController.getCategoryCalculation
 );
 
+app.post(
+  '/api/categories/:id/calculate',
+  categoryController.calculateCategoryPrice
+);
+
 app.get(
   '/api/categories/:id',
   categoryController.getCategory
