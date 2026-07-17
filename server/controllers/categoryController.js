@@ -968,3 +968,293 @@ exports.getCategoryCalculation = async (
     });
   }
 };
+  /*
+  POST /api/categories/:id/calculate
+
+  Calculates product price using category settings.
+
+  Request example:
+  {
+    "weight": 10,
+    "diamond_price": 0,
+    "fixed_making_charge": 0,
+    "other_charges": 0,
+    "discount_percentage": 0
+  }
+*/
+exports.calculateCategoryPrice = async (req, res) => {
+  try {
+    const categoryId = Number(req.params.id);
+
+    const weight = Number(req.body.weight || 0);
+
+    const productDiamondPrice = Number(
+      req.body.diamond_price || 0
+    );
+
+    const fixedMakingCharge = Number(
+      req.body.fixed_making_charge || 0
+    );
+
+    const otherCharges = Number(
+      req.body.other_charges || 0
+    );
+
+    const discountPercentage = Number(
+      req.body.discount_percentage || 0
+    );
+
+    if (!Number.isInteger(categoryId)) {
+      return res.status(400).json({
+        message: 'Invalid category ID'
+      });
+    }
+
+    if (weight <= 0) {
+      return res.status(400).json({
+        message:
+          'Product weight must be greater than zero'
+      });
+    }
+
+    if (
+      discountPercentage < 0 ||
+      discountPercentage > 100
+    ) {
+      return res.status(400).json({
+        message:
+          'Discount must be between 0 and 100'
+      });
+    }
+
+    const pool = await connectDB();
+
+    await ensureCategoryColumns(pool);
+
+    /*
+      Get category calculation rules and current
+      gold/silver rate from the GoldRates table.
+    */
+    const result = await pool
+      .request()
+      .input('categoryId', sql.Int, categoryId)
+      .query(`
+        SELECT
+          C.Id AS category_id,
+          C.Name AS category_name,
+          C.Material AS material,
+          C.Purity AS purity,
+
+          C.MakingChargesPerGram
+            AS making_charges_per_gram,
+
+          C.WastagePercentage
+            AS wastage_percentage,
+
+          C.GSTPercentage
+            AS gst_percentage,
+
+          C.DefaultDiamondPrice
+            AS default_diamond_price,
+
+          C.CalculationType
+            AS calculation_type,
+
+          (
+            SELECT TOP 1 RatePerGram
+            FROM dbo.GoldRates
+            WHERE UPPER(Purity) =
+              UPPER(C.Purity)
+            ORDER BY UpdatedAt DESC
+          ) AS rate_per_gram
+
+        FROM dbo.Categories AS C
+        WHERE C.Id = @categoryId
+          AND C.IsActive = 1;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        message: 'Category not found'
+      });
+    }
+
+    const category = result.recordset[0];
+
+    const purity = String(
+      category.purity || '22K'
+    ).toUpperCase();
+
+    let ratePerGram = Number(
+      category.rate_per_gram || 0
+    );
+
+    /*
+      Fallback rates are used only if the rate
+      is missing from the GoldRates table.
+    */
+    if (ratePerGram <= 0) {
+      if (purity === '24K') {
+        ratePerGram = 15574;
+      } else if (purity === '18K') {
+        ratePerGram = 11680;
+      } else if (
+        purity === 'SILVER' ||
+        purity === '925' ||
+        purity === '999'
+      ) {
+        ratePerGram = 266;
+      } else {
+        ratePerGram = 14275;
+      }
+    }
+
+    const makingChargePerGram = Number(
+      category.making_charges_per_gram || 0
+    );
+
+    const wastagePercentage = Number(
+      category.wastage_percentage || 0
+    );
+
+    const gstPercentage = Number(
+      category.gst_percentage ?? 3
+    );
+
+    const defaultDiamondPrice = Number(
+      category.default_diamond_price || 0
+    );
+
+    /*
+      If an individual diamond price is entered,
+      use it. Otherwise use the category default.
+    */
+    const diamondPrice =
+      productDiamondPrice > 0
+        ? productDiamondPrice
+        : defaultDiamondPrice;
+
+    // 1. Gold/silver value
+    const metalValue =
+      weight * ratePerGram;
+
+    // 2. Wastage charge
+    const wastageAmount =
+      metalValue *
+      (wastagePercentage / 100);
+
+    // 3. Making charge
+    const makingCharges =
+      weight * makingChargePerGram +
+      fixedMakingCharge;
+
+    // 4. Price before GST and discount
+    const subtotal =
+      metalValue +
+      wastageAmount +
+      makingCharges +
+      diamondPrice +
+      otherCharges;
+
+    // 5. Discount
+    const discountAmount =
+      subtotal *
+      (discountPercentage / 100);
+
+    const amountAfterDiscount =
+      subtotal - discountAmount;
+
+    // 6. GST
+    const gstAmount =
+      amountAfterDiscount *
+      (gstPercentage / 100);
+
+    // 7. Final amount
+    const finalPrice =
+      amountAfterDiscount + gstAmount;
+
+    const roundMoney = (amount) =>
+      Math.round(
+        (Number(amount) + Number.EPSILON) * 100
+      ) / 100;
+
+    return res.status(200).json({
+      message:
+        'Price calculated successfully',
+
+      calculation: {
+        category_id: category.category_id,
+        category_name:
+          category.category_name,
+
+        calculation_type:
+          category.calculation_type,
+
+        material:
+          category.material || 'Gold',
+
+        purity,
+
+        weight,
+
+        rate_per_gram:
+          roundMoney(ratePerGram),
+
+        metal_value:
+          roundMoney(metalValue),
+
+        wastage_percentage:
+          roundMoney(wastagePercentage),
+
+        wastage_amount:
+          roundMoney(wastageAmount),
+
+        making_charge_per_gram:
+          roundMoney(makingChargePerGram),
+
+        fixed_making_charge:
+          roundMoney(fixedMakingCharge),
+
+        making_charges:
+          roundMoney(makingCharges),
+
+        diamond_price:
+          roundMoney(diamondPrice),
+
+        other_charges:
+          roundMoney(otherCharges),
+
+        subtotal:
+          roundMoney(subtotal),
+
+        discount_percentage:
+          roundMoney(discountPercentage),
+
+        discount_amount:
+          roundMoney(discountAmount),
+
+        amount_after_discount:
+          roundMoney(amountAfterDiscount),
+
+        gst_percentage:
+          roundMoney(gstPercentage),
+
+        gst_amount:
+          roundMoney(gstAmount),
+
+        final_price:
+          roundMoney(finalPrice)
+      }
+    });
+  } catch (error) {
+    console.error(
+      'Calculate Category Price Error:',
+      error
+    );
+
+    return res.status(500).json({
+      message: 'Unable to calculate price',
+      error: error.message
+    });
+  }
+};
