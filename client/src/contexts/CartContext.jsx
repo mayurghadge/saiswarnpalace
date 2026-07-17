@@ -37,7 +37,14 @@ const buildCartItem = (product) => ({
 });
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem('cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch {
+      return [];
+    }
+  });
   const [wishlist, setWishlist] = useState(() => {
     try {
       const savedWishlist = localStorage.getItem('wishlist');
@@ -47,6 +54,10 @@ export const CartProvider = ({ children }) => {
     }
   });
 
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
+  
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);

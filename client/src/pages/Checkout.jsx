@@ -49,6 +49,7 @@ const Checkout = () => {
   const [form, setForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
+    email: user?.email || '',
     address: '',
     city: '',
     state: '',
@@ -66,13 +67,14 @@ const Checkout = () => {
         ...prev,
         name: defaultAddress.name,
         phone: defaultAddress.phone,
+        email: user?.email || '',
         address: defaultAddress.address,
         city: defaultAddress.city,
         state: defaultAddress.state,
         pincode: defaultAddress.pincode
       }));
     }
-  }, [addresses]);
+  }, [addresses, user]);
 
   const handleSaveAddress = (e) => {
     e.preventDefault();
