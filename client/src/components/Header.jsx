@@ -61,13 +61,13 @@ const Header = () => {
     <header className="bg-white text-black sticky top-0 z-50 shadow-md">
       {/* Top Banner - Gold Rate */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
           <div 
             className="flex items-center gap-2 relative"
             onMouseEnter={() => setGoldRateMenuOpen(true)}
             onMouseLeave={() => setGoldRateMenuOpen(false)}
           >
-            <span className="text-gray-700 font-medium">Today's Rate : Gold Price 22KT/g</span>
+            <span className="text-gray-700 font-medium"><span className="sm:hidden">22K/g</span><span className="hidden sm:inline">Today's Rate : Gold Price 22KT/g</span></span>
             <span className="text-[#9D7E2A] font-bold">₹{Number(goldRate22k || 0).toLocaleString()}</span>
             <ChevronDown size={14} className="text-gray-500" />
             
@@ -95,15 +95,15 @@ const Header = () => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-6">
-            <Link to="https://www.saiswarnpalace.com/" className="text-gray-700 font-medium hover:text-gold transition">PURCHASE PLAN PAYMENT</Link>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <Link to="https://www.saiswarnpalace.com/" className="hidden sm:block text-gray-700 font-medium hover:text-gold transition">PURCHASE PLAN PAYMENT</Link>
             {/* My Account Dropdown */}
             <div 
               className="relative"
               onMouseEnter={() => setAccountMenuOpen(true)}
               onMouseLeave={() => setAccountMenuOpen(false)}
             >
-              <button className="text-gray-700 font-medium hover:text-gold transition flex items-center gap-1">
+              <button onClick={() => setAccountMenuOpen(!accountMenuOpen)} className="text-gray-700 font-medium hover:text-gold transition flex items-center gap-1">
                 {user ? 'My Account' : 'ACCOUNT'} <ChevronDown size={14} />
               </button>
               {accountMenuOpen && (
@@ -131,13 +131,13 @@ const Header = () => {
       {/* Main Header */}
       <div className="border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-24">
+          <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
             {/* Logo 1 */}
             <Link to="/" className="flex items-center gap-2">
-              <img src="https://res.cloudinary.com/dayhebhj7/image/upload/v1782470637/ssp_logo_jub3xa.png" alt="SAI SWARN PALACE Logo" className="h-20 w-auto" />
+              <img src="https://res.cloudinary.com/dayhebhj7/image/upload/v1782470637/ssp_logo_jub3xa.png" alt="SAI SWARN PALACE Logo" className="h-12 sm:h-16 md:h-20 w-auto" />
             </Link>
             {/* Logo 2 */}
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/" className="hidden lg:flex items-center gap-2">
               <div className="text-4xl font-bold text-gold" style={{ fontFamily: 'Georgia, serif' }}>SAI SWARN PALACE</div>
             </Link>
 
@@ -156,12 +156,12 @@ const Header = () => {
             </form>
 
             {/* Icons Section */}
-            <div className="flex items-center gap-6">
-              <button className="flex flex-col items-center gap-1 hover:text-gold transition">
+            <div className="flex items-center gap-3 sm:gap-6">
+              <button className="hidden sm:flex flex-col items-center gap-1 hover:text-gold transition">
                 <MapPin size={24} />
                 <span className="text-xs text-gray-600">Stores</span>
               </button>
-              <Link to="/wishlist" className="flex flex-col items-center gap-1 hover:text-gold transition">
+              <Link to="/wishlist" className="hidden sm:flex flex-col items-center gap-1 hover:text-gold transition">
                 <Heart size={24} />
                 <span className="text-xs text-gray-600">My Wishlist</span>
               </Link>
@@ -172,7 +172,7 @@ const Header = () => {
                     {cartCount}
                   </span>
                 )}
-                <span className="text-xs text-gray-600">My Cart</span>
+                <span className="hidden sm:block text-xs text-gray-600">My Cart</span>
               </Link>
               <button 
                 className="md:hidden flex flex-col items-center gap-1"

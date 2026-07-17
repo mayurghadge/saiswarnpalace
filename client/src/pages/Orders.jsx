@@ -269,7 +269,7 @@ const Orders = () => {
               </Link>
             </div>
 
-            <div className="border border-gray-200 rounded overflow-hidden">
+            <div className="border border-gray-200 rounded overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>

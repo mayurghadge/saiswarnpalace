@@ -1,27 +1,28 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, Download, ShoppingBag } from 'lucide-react';
 import { downloadInvoicePdf } from '../utils/invoice';
 
 const PaymentSuccess = () => {
+  const { state } = useLocation();
   const orderSummary = {
     orderNumber: 'ORD12345',
     date: new Date().toLocaleDateString(),
-    customerName: 'Sai Swarn Palace Customer',
+    customerName: state?.customerName || 'Sai Swarn Palace Customer',
     shippingAddress: {
-      name: 'Sai Swarn Palace Customer',
+      name: state?.customerName || 'Sai Swarn Palace Customer',
       address: 'Shipping address added during checkout',
       city: 'Narasannapeta',
       state: 'Andhra Pradesh',
       pincode: '532421',
       phone: '6304399806'
     },
-    paymentMethod: 'Razorpay',
+    paymentMethod: state?.paymentMethod || 'Razorpay',
     items: [
       { name: 'Jewellery Order Item', quantity: 1, price: 138020 }
     ],
     subtotal: 134000,
     tax: 4020,
-    total: 138020,
+    total: state?.total || 138020,
   };
 
   return (
@@ -30,7 +31,9 @@ const PaymentSuccess = () => {
         <CheckCircle size={80} className="mx-auto text-green-500 mb-6" />
         <h1 className="text-4xl font-bold mb-4">Order Placed Successfully!</h1>
         <p className="text-lg text-gray-600 mb-8">
-          Thank you for your purchase. We'll send you a confirmation email shortly.
+          {state?.paymentMethod === 'Cash on Delivery'
+            ? 'Your order has been placed. Payment will be collected when it is delivered.'
+            : "Thank you for your purchase. We'll send you a confirmation email shortly."}
         </p>
         
         <div className="bg-gray-50 rounded-xl p-6 mb-8 text-left">
@@ -44,7 +47,7 @@ const PaymentSuccess = () => {
           </div>
           <div className="flex justify-between items-center pt-4 border-t">
             <span className="text-gray-600">Total Amount</span>
-            <span className="text-2xl font-bold text-gold">₹1,38,020</span>
+            <span className="text-2xl font-bold text-gold">₹{Math.round(orderSummary.total).toLocaleString()}</span>
           </div>
         </div>
 

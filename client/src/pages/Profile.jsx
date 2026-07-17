@@ -387,7 +387,7 @@ const Profile = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-medium text-gray-900">My Orders</h3>
                 </div>
-                <div className="border border-gray-200 rounded overflow-hidden">
+                <div className="border border-gray-200 rounded overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>

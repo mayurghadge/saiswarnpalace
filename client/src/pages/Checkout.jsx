@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useGoldRate } from '../contexts/GoldRateContext';
-import { CreditCard, ArrowLeft, X, CheckCircle2, Check } from 'lucide-react';
+import { CreditCard, ArrowLeft, X, CheckCircle2, Check, Banknote, WalletCards } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
@@ -27,6 +27,7 @@ const Checkout = () => {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(() => loadAppliedCoupon());
   const [discountAmount, setDiscountAmount] = useState(0);
+  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
   
   const total = subtotal + tax + shipping - discountAmount;
 
@@ -100,7 +101,7 @@ const Checkout = () => {
       description: 'Jewellery Purchase',
       handler: function (response) {
         toast.success('Payment successful!');
-        navigate('/payment-success');
+        completeOrder('Razorpay');
       },
       prefill: {
         name: form.name,
@@ -119,28 +120,66 @@ const Checkout = () => {
     rzp1.open();
   };
 
+  const completeOrder = (paymentMethod) => {
+    navigate('/payment-success', {
+      state: {
+        paymentMethod,
+        total,
+        customerName: form.name,
+      },
+    });
+  };
+
+  const handleCodOrder = () => {
+    toast.success('Order placed. Please pay when your order is delivered.');
+    completeOrder('Cash on Delivery');
+  };
+
+  const handlePaypalPayment = () => {
+    if (!paypalClientId) {
+      toast.error('PayPal is not configured yet. Add VITE_PAYPAL_CLIENT_ID to enable it.');
+      return;
+    }
+
+    toast('PayPal checkout integration is ready for configuration.');
+  };
+
+  const handlePayment = () => {
+    if (form.paymentMethod === 'cod') {
+      handleCodOrder();
+      return;
+    }
+
+    if (form.paymentMethod === 'paypal') {
+      handlePaypalPayment();
+      return;
+    }
+
+    handleRazorpayPayment();
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (step === 'shipping') {
       setStep('payment');
     } else {
-      handleRazorpayPayment();
+      handlePayment();
     }
   };
 
   return (
-    <div className="py-12 bg-white min-h-screen">
+    <div className="py-6 md:py-12 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Progress Bar */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-2">
+        <div className="text-center mb-8 md:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'shipping' ? 'bg-[#9D7E2A] text-white' : 'bg-white text-[#9D7E2A] border-2 border-[#9D7E2A]'}`}>
                 {step === 'payment' ? <CheckCircle2 size={16} /> : <span className="text-sm">1</span>}
               </div>
               <span className={`font-medium ${step === 'shipping' ? 'text-[#9D7E2A]' : 'text-gray-800'}`}>Shipping</span>
             </div>
-            <div className={`w-16 h-0.5 ${step === 'payment' ? 'bg-[#9D7E2A]' : 'bg-gray-300'}`} />
+            <div className={`w-8 sm:w-16 h-0.5 ${step === 'payment' ? 'bg-[#9D7E2A]' : 'bg-gray-300'}`} />
             <div className="flex items-center gap-2">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'payment' ? 'border-2 border-[#9D7E2A] text-[#9D7E2A]' : 'border-2 border-gray-300 text-gray-300'}`}>
                 <span className="text-sm">2</span>
@@ -198,8 +237,32 @@ const Checkout = () => {
                         onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
                         className="w-4 h-4"
                       />
-                      <img src="https://razorpay.com/favicon.ico" alt="Razorpay" className="w-4 h-4" />
+                      <CreditCard size={18} className="text-[#9D7E2A]" />
                       <span className="text-sm">Razorpay</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border border-gray-200 rounded cursor-pointer hover:border-[#9D7E2A]">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="cod"
+                        checked={form.paymentMethod === 'cod'}
+                        onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+                        className="w-4 h-4"
+                      />
+                      <Banknote size={18} className="text-[#9D7E2A]" />
+                      <span className="text-sm">Cash on Delivery</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border border-gray-200 rounded cursor-pointer hover:border-[#9D7E2A]">
+                      <input
+                        type="radio"
+                        name="payment"
+                        value="paypal"
+                        checked={form.paymentMethod === 'paypal'}
+                        onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
+                        className="w-4 h-4"
+                      />
+                      <WalletCards size={18} className="text-[#003087]" />
+                      <span className="text-sm">PayPal</span>
                     </label>
                   </div>
 
@@ -227,10 +290,14 @@ const Checkout = () => {
 
                   {/* Pay Button */}
                   <button
-                    onClick={handleRazorpayPayment}
+                    onClick={handlePayment}
                     className="px-8 py-2 bg-[#9D7E2A] text-white rounded-full hover:bg-yellow-700 transition font-medium"
                   >
-                    PAY WITH RAZORPAY
+                    {form.paymentMethod === 'cod'
+                      ? 'PLACE COD ORDER'
+                      : form.paymentMethod === 'paypal'
+                        ? 'PAY WITH PAYPAL'
+                        : 'PAY WITH RAZORPAY'}
                   </button>
                 </div>
               </div>

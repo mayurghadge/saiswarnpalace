@@ -796,18 +796,18 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <aside className="w-64 bg-black text-white flex-shrink-0">
-        <div className="p-6">
+    <div className="flex min-h-screen flex-col md:flex-row bg-gray-100">
+      <aside className="w-full md:w-64 bg-black text-white flex-shrink-0">
+        <div className="p-4 md:p-6">
           <h1 className="text-2xl font-bold text-[#9D7E2A]">Sai Swarn Palace</h1>
           <p className="text-gray-400 text-sm">Admin Panel</p>
         </div>
-        <nav className="px-4 space-y-2">
+        <nav className="flex gap-2 overflow-x-auto px-3 pb-3 md:block md:px-4 md:space-y-2 md:pb-0">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              className={`min-w-max md:w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                 activeTab === item.id ? 'bg-[#9D7E2A] text-black' : 'hover:bg-gray-800'
               }`}
             >
@@ -817,19 +817,19 @@ const AdminDashboard = () => {
           ))}
           <button
             onClick={() => { localStorage.removeItem('adminLoggedIn'); localStorage.removeItem('adminToken'); navigate('/admin-login'); }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-red-900 text-red-400 mt-8"
+            className="min-w-max md:w-full flex items-center gap-3 px-4 py-3 rounded-lg transition hover:bg-red-900 text-red-400 md:mt-8"
           >
             <LogOut size={20} />
             LogOut
           </button>
         </nav>
       </aside>
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="min-w-0 flex-1 p-4 md:p-8 overflow-y-auto">
         {activeTab === 'dashboard' && (
           <div>
-            <div className="flex justify-between mb-8">
-              <h1 className="text-3xl font-bold">Dashboard</h1>
-              <div className="text-gray-500">{new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+              <div className="text-sm md:text-base text-gray-500">{new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
             </div>
             <div className="grid md:grid-cols-4 gap-6 mb-8">
               {[
