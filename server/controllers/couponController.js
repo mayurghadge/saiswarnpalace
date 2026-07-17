@@ -39,10 +39,22 @@ const applyCoupon = async (req, res) => {
     const result = await pool.request()
       .input('code', sql.NVarChar, normalizedCode)
       .query(`
-        SELECT TOP 1 *
+        SELECT TOP 1 
+          Id AS id,
+          Code AS code,
+          Discount_Type AS discount_type,
+          Discount_Value AS discount_value,
+          Min_Order_Value AS min_order_value,
+          Max_Discount AS max_discount,
+          Usage_Limit AS usage_limit,
+          Used_Count AS used_count,
+          Valid_From AS valid_from,
+          Valid_To AS valid_to,
+          Is_Active AS is_active,
+          Created_At AS created_at
         FROM Coupons 
-        WHERE UPPER(LTRIM(RTRIM(code))) = @code
-        ORDER BY id DESC
+        WHERE UPPER(LTRIM(RTRIM(Code))) = @code
+        ORDER BY Id DESC
       `);
 
     if (result.recordset.length === 0) {

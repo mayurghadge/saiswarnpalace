@@ -4,6 +4,14 @@ const { connectDB, sql } = require("../config/db");
 // Ensure Orders and OrderItems tables exist with all columns
 // ===============================
 async function ensureOrdersTable(pool) {
+  // Add OrderNumber column first if missing!
+  await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'OrderNumber')
+    BEGIN
+      ALTER TABLE Orders ADD OrderNumber NVARCHAR(50) NULL
+    END
+  `);
+  
   // Create Orders table if it doesn't exist
   await pool.request().query(`
     IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Orders')
@@ -43,10 +51,6 @@ async function ensureOrdersTable(pool) {
   
   // Add missing columns to Orders table if needed
   await pool.request().query(`
-    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'OrderNumber')
-    BEGIN
-      ALTER TABLE Orders ADD OrderNumber NVARCHAR(50) NULL
-    END
     IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerName')
     BEGIN
       ALTER TABLE Orders ADD CustomerName NVARCHAR(100) NULL
@@ -88,6 +92,8 @@ async function ensureOrdersTable(pool) {
 // ===============================
 exports.createOrder = async (req, res) => {
   try {
+    console.log('📦 Order request body:', JSON.stringify(req.body, null, 2));
+
     const {
       customerName,
       phone,
@@ -105,6 +111,8 @@ exports.createOrder = async (req, res) => {
     await ensureOrdersTable(pool);
     const userId = req.user?.id || null;
     const orderNumber = `ORD-${Date.now()}`;
+
+    console.log('📝 Creating order with order number:', orderNumber);
 
     // Insert Order
     const orderResult = await pool
@@ -128,11 +136,14 @@ exports.createOrder = async (req, res) => {
       `);
 
     const orderId = orderResult.recordset[0].id;
+    console.log('✅ Order created with ID:', orderId);
 
     // Insert Order Items
     if (items && items.length > 0) {
+      console.log('🛒 Inserting', items.length, 'order items');
       for (const item of items) {
         const itemPrice = item.discount_price || item.price || 0;
+        console.log('📦 Adding item:', JSON.stringify(item, null, 2));
         await pool
           .request()
           .input("orderId", sql.Int, orderId)
@@ -153,7 +164,7 @@ exports.createOrder = async (req, res) => {
       orderNumber,
     });
   } catch (err) {
-    console.error('Create Order Error:', err);
+    console.error('❌ Create Order Error:', err);
     res.status(500).json({
       success: false,
       message: err.message,
