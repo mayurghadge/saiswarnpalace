@@ -175,7 +175,7 @@ const Home = () => {
             >
               <div className="overflow-hidden rounded-xl">
                 <img
-                  src={getImageUrl(product.images || product.image || product.ImageURL, fallbackImages[2])}
+                  src={getImageUrl(product.images || product.image || product.ImageURL, fallbackImages[1])}
                   alt={product.name}
                   className="h-64 w-full object-cover transition duration-500 group-hover:scale-110"
                 />
