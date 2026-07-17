@@ -58,13 +58,8 @@ const Profile = () => {
     { id: 1, name: 'Ghadge Mayur', phone: '916300399806', address: 'Market streetmnbvcxwef', city: 'narasannapeta', state: 'Andhra Pradesh', pincode: '532421', isDefault: true },
   ]);
 
-  // Demo orders
-  const orders = [
-    { id: '65-6300221', date: '05/06/2026', total: 547328, status: 'Cancelled', items: 2, shipTo: 'Ghadge Mayur' },
-    { id: '65-63002215', date: '05/06/2026', total: 547328, status: 'Cancelled', items: 2, shipTo: 'Ghadge Mayur' },
-    { id: '65-63002214', date: '05/06/2026', total: 547328, status: 'Cancelled', items: 2, shipTo: 'Ghadge Mayur' },
-    { id: '65-63001652', date: '26/03/2026', total: 44066, status: 'Cancelled', items: 1, shipTo: 'Ghadge Mayur' },
-  ];
+  // Orders will be populated from the customer order API when checkout is connected.
+  const orders = [];
 
   const [addressForm, setAddressForm] = useState({
     name: '',
@@ -405,7 +400,11 @@ const Profile = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {orders.map((order) => (
+                      {orders.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="px-4 py-10 text-center text-gray-500">You have not placed any orders yet.</td>
+                        </tr>
+                      ) : orders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50">
                           <td className="px-4 py-4 text-sm text-gray-800">{order.id}</td>
                           <td className="px-4 py-4 text-sm text-gray-800">{order.date}</td>

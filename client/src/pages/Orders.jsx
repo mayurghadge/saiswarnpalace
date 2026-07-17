@@ -7,98 +7,8 @@ const Orders = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Demo orders data
-  const orders = [
-    {
-      id: '65-6300221',
-      date: '05/06/2026',
-      total: 547328,
-      status: 'Cancelled',
-      shipTo: 'Ghadge Mayur',
-      items: [
-        { 
-          id: 1, 
-          name: 'Elegant Casting 22K Gold Floral Pendant', 
-          sku: '106T02SA23445T0916001Z2700', 
-          price: 21413.96, 
-          quantity: 1, 
-          image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_400,h_400,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg',
-          weight: 13.2
-        },
-        { 
-          id: 2, 
-          name: 'Traditional Bridal 22K Gold Short Necklace', 
-          sku: '2810T04SB7070426249600', 
-          price: 509972.60, 
-          quantity: 1, 
-          image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_400,h_400,c_fill/v1780295778/chain_nxgghq.jpg',
-          weight: 376.66
-        },
-      ],
-      shippingAddress: {
-        name: 'ghadge mayur',
-        phone: '6304399806',
-        address: 'market streetmnbvcxwefg',
-        city: 'narasannapeta',
-        state: 'Andhra Pradesh',
-        pincode: '532421'
-      },
-      shippingMethod: 'Free Shipping',
-      paymentMethod: 'Razorpay',
-    },
-    {
-      id: '65-63002215',
-      date: '05/06/2026',
-      total: 547328,
-      status: 'Cancelled',
-      shipTo: 'Ghadge Mayur',
-      items: [
-        { 
-          id: 1, 
-          name: 'Elegant Casting 22K Gold Floral Pendant', 
-          sku: '106T02SA23445T0916001Z2700', 
-          price: 21413.96, 
-          quantity: 1, 
-          image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_400,h_400,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg',
-          weight: 13.2
-        },
-      ],
-      shippingAddress: {
-        name: 'ghadge mayur',
-        phone: '6304399806',
-        address: 'market streetmnbvcxwefg',
-        city: 'narasannapeta',
-        state: 'Andhra Pradesh',
-        pincode: '532421'
-      },
-    },
-    {
-      id: '65-63001652',
-      date: '26/03/2026',
-      total: 44066,
-      status: 'Cancelled',
-      shipTo: 'Ghadge Mayur',
-      items: [
-        { 
-          id: 1, 
-          name: 'Classic Elegance 22K Gold Colorful Nose Pin', 
-          sku: '105T02SA23906T097096005N00', 
-          price: 1586.33, 
-          quantity: 1, 
-          image: 'https://res.cloudinary.com/dayhebhj7/image/fetch/f_auto,q_auto,w_400,h_400,c_fill/https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f',
-          weight: 0.81
-        },
-      ],
-      shippingAddress: {
-        name: 'ghadge mayur',
-        phone: '6304399806',
-        address: 'market streetmnbvcxwefg',
-        city: 'narasannapeta',
-        state: 'Andhra Pradesh',
-        pincode: '532421'
-      },
-    },
-  ];
+  // Orders will be populated from the customer order API when checkout is connected.
+  const orders = [];
 
   // If viewing single order
   if (id) {
@@ -372,7 +282,11 @@ const Orders = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {orders.map((order) => (
+                  {orders.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-4 py-10 text-center text-gray-500">You have not placed any orders yet.</td>
+                    </tr>
+                  ) : orders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4 text-sm text-gray-800">{order.id}</td>
                       <td className="px-4 py-4 text-sm text-gray-800">{order.date}</td>
