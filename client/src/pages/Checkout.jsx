@@ -593,34 +593,56 @@ const Checkout = () => {
                 </div>
               </div>
 
+              
               {/* Coupon */}
-              {appliedCoupon && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-800 mb-1">{appliedCoupon.code}</p>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {appliedCoupon.discount_type === 'PERCENTAGE'
-                      ? `${appliedCoupon.discount_value}% off applied`
-                      : `₹${appliedCoupon.discount_value} off applied`}
-                  </p>
-                  {appliedCoupon.max_discount ? <p className="text-xs text-gray-400">Max discount: ₹{appliedCoupon.max_discount}</p> : null}
-                </div>
-              )}
 
-              <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                <input 
-                  type="text" 
-                  placeholder="Enter discount code" 
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-full px-3 py-2 text-sm"
-                />
-                <button 
-                  type="submit"
-                  className="px-4 py-2 bg-gray-900 text-white rounded-full text-sm"
-                >
-                  Apply Discount
-                </button>
-              </form>
+              {appliedCoupon ? (
+                <div className="mb-4 border border-green-300 rounded-lg p-4 bg-green-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold text-green-700">
+                        ✅ {appliedCoupon.code}
+                      </p>
+
+                      <p className="text-sm text-gray-600">
+                        {appliedCoupon.discount_type === "PERCENTAGE"
+                          ? `${appliedCoupon.discount_value}% off applied`
+                          : `₹${appliedCoupon.discount_value} off applied`}
+                      </p>
+
+                      {appliedCoupon.max_discount && (
+                        <p className="text-xs text-gray-500">
+                          Max discount: ₹{appliedCoupon.max_discount}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                    >
+                      ✕ Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter discount code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    classname="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gray-900 text-white rounded-full text-sm"
+                  >
+                    Apply Discount
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
