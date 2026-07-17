@@ -50,13 +50,12 @@ export default function MegaMenu() {
 
                       {group.items.map((item) => (
                         <Link
-                          key={item}
-                          to={`/products?category=${createSlug(
-                            item
-                          )}&menu=${createSlug(menu.title)}`}
+                          key={`${group.heading}-${item.label}`}
+                          to={item.to}
                           onClick={() => setActiveMenu(null)}
+                          className="mega-menu-link"
                         >
-                          {item}
+                          {item.label}
                         </Link>
                       ))}
                     </div>
