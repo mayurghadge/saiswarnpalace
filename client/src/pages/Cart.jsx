@@ -8,7 +8,7 @@ import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartTotal, clearCart, addToWishlist } = useCart();
   const { gstRate } = useGoldRate();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -114,7 +114,14 @@ const Cart = () => {
                           
                           <div className="mt-2">
                             <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                              <button className="flex items-center gap-1 hover:text-[#9D7E2A] transition">
+                              <button
+                                onClick={() => {
+                                  addToWishlist(item);
+                                  removeFromCart(item.id);
+                                  toast.success('Moved to wishlist!');
+                                }}
+                                className="flex items-center gap-1 hover:text-[#9D7E2A] transition"
+                              >
                                 <Heart size={14} /> Move to Wishlist
                               </button>
                               <span className="text-gray-400">|</span>

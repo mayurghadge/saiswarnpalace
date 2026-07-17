@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 const CartContext = createContext();
 
@@ -38,6 +38,18 @@ const buildCartItem = (product) => ({
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const savedWishlist = localStorage.getItem('wishlist');
+      return savedWishlist ? JSON.parse(savedWishlist) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
 
   const addToCart = (productInput, quantity = 1) => {
     const product = typeof productInput === 'object' && productInput !== null
@@ -83,11 +95,26 @@ export const CartProvider = ({ children }) => {
     setCart([]);
   };
 
+  const addToWishlist = (productInput) => {
+    if (!productInput || typeof productInput !== 'object') return;
+
+    const product = buildCartItem(productInput);
+    setWishlist((currentWishlist) => (
+      currentWishlist.some((item) => item.id === product.id)
+        ? currentWishlist
+        : [...currentWishlist, product]
+    ));
+  };
+
+  const removeFromWishlist = (productId) => {
+    setWishlist((currentWishlist) => currentWishlist.filter((item) => item.id !== productId));
+  };
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cart.reduce((sum, item) => sum + (item.discount_price || item.price) * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, wishlist, addToWishlist, removeFromWishlist }}>
       {children}
     </CartContext.Provider>
   );

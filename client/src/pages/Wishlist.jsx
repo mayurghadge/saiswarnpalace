@@ -1,20 +1,18 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { Trash2, ShoppingCart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const Wishlist = () => {
-  const { addToCart } = useCart();
-  const [wishlist, setWishlist] = useState([]);
+  const { addToCart, wishlist, removeFromWishlist } = useCart();
 
   const handleAddToCart = (product) => {
-    addToCart(product.id);
+    addToCart(product);
     toast.success('Added to cart!');
   };
 
   const handleRemove = (id) => {
-    setWishlist(wishlist.filter(item => item.id !== id));
+    removeFromWishlist(id);
     toast.success('Removed from wishlist!');
   };
 

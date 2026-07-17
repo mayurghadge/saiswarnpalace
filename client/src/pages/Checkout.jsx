@@ -12,14 +12,7 @@ const Checkout = () => {
   const { gstRate } = useGoldRate();
   const navigate = useNavigate();
 
-  // Demo cart data
-  const demoCart = [
-    { id: 1, name: 'Elegant Casting 22K Gold Floral Pendant', sku: '106T02SA23445T0916001Z2700', price: 21413.96, discount_price: 21413.96, quantity: 1, image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_400,h_400,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg' },
-    { id: 2, name: 'Traditional Bridal 22K Gold Short Necklace', sku: '2810T04SB7070426249600', price: 509972.60, discount_price: 509972.60, quantity: 1, image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_400,h_400,c_fill/v1780295778/chain_nxgghq.jpg' },
-    { id: 3, name: 'Classic Elegance 22K Gold Colorful Nose Pin', sku: '105T02SA23906T097096005N00', price: 1586.33, discount_price: 1586.33, quantity: 1, image: 'https://res.cloudinary.com/dayhebhj7/image/fetch/f_auto,q_auto,w_400,h_400,c_fill/https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f' },
-  ];
-
-  const displayCart = cart.length > 0 ? cart : demoCart;
+  const displayCart = cart;
   const subtotal = displayCart.reduce((sum, item) => sum + ((item.discount_price || item.price) * item.quantity), 0);
   const tax = (subtotal * gstRate) / 100;
   const shipping = 0;
@@ -40,7 +33,7 @@ const Checkout = () => {
     city: 'narasannapeta',
     state: 'Andhra Pradesh',
     pincode: '532421',
-    paymentMethod: 'razorpay',
+    paymentMethod: 'cod',
     billingSameAsShipping: true
   });
 
@@ -166,6 +159,16 @@ const Checkout = () => {
       handlePayment();
     }
   };
+
+  if (displayCart.length === 0) {
+    return (
+      <div className="min-h-screen bg-white px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Your cart is empty</h1>
+        <p className="mt-3 text-gray-600">Add a product before proceeding to payment.</p>
+        <Link to="/products" className="mt-6 inline-block rounded-full bg-[#9D7E2A] px-6 py-3 font-medium text-white">Browse Products</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6 md:py-12 bg-white min-h-screen">

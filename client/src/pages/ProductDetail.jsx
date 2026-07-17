@@ -12,7 +12,7 @@ const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { addToCart } = useCart();
+  const { addToCart, addToWishlist } = useCart();
   const { calculateProductEstimate } = useGoldRate();
   const [product, setProduct] = useState(null);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -245,7 +245,20 @@ const ProductDetail = () => {
               >
                 Add to Cart
               </button>
-              <button className="p-4 border border-gray-300 rounded-xl hover:border-gold transition hover:bg-gold/10">
+              <button
+                onClick={() => {
+                  addToWishlist({
+                    ...product,
+                    image: imageList[0] || getImageUrl(product.images || product.image || product.ImageURL),
+                    estimated_price: Math.round(estimate.estimatedTotal),
+                    rate_per_gram: Math.round(estimate.rate),
+                    purity_label: estimate.purityLabel,
+                  });
+                  toast.success('Added to wishlist!');
+                }}
+                aria-label="Add to wishlist"
+                className="p-4 border border-gray-300 rounded-xl hover:border-gold transition hover:bg-gold/10"
+              >
                 <Heart size={24} />
               </button>
             </div>

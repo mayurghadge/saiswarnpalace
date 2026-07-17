@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useGoldRate } from '../contexts/GoldRateContext';
+import { Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const API_BASE =
@@ -14,7 +15,7 @@ const Products = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const { addToCart } = useCart();
+  const { addToCart, addToWishlist } = useCart();
   const { calculateProductEstimate } = useGoldRate();
 
   const getImageUrl = (value) => {
@@ -165,6 +166,22 @@ const Products = () => {
                             className="flex-1 bg-black text-white py-2 rounded hover:bg-yellow-700 hover:text-white transition"
                           >
                             Add to Cart
+                          </button>
+                          <button
+                            onClick={() => {
+                              addToWishlist({
+                                ...product,
+                                image: getImageUrl(product.images || product.image || product.ImageURL),
+                                estimated_price: Math.round(estimate.estimatedTotal),
+                                rate_per_gram: Math.round(estimate.rate),
+                                purity_label: estimate.purityLabel,
+                              });
+                              toast.success('Added to wishlist!');
+                            }}
+                            aria-label={`Add ${product.name} to wishlist`}
+                            className="p-2 border border-gray-300 rounded hover:border-[#9D7E2A] hover:text-[#9D7E2A] transition"
+                          >
+                            <Heart size={20} />
                           </button>
                         </div>
                     </div>
