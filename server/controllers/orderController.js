@@ -1,17 +1,4 @@
 const { connectDB, sql } = require("../config/db");
-const express = require("express");
-const router = express.Router();
-
-const orderController = require("../controllers/orderController");
-
-router.post("/", orderController.createOrder);          // Place Order
-router.get("/", orderController.getOrders);             // Admin Orders
-router.get("/my/:phone", orderController.getMyOrders);  // Customer Orders
-router.get("/:id", orderController.getOrderById);       // Single Order
-router.put("/:id", orderController.updateOrderStatus);  // Update Status
-
-module.exports = router;
-
 
 // ===============================
 // Create Order
