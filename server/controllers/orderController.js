@@ -43,6 +43,10 @@ async function ensureOrdersTable(pool) {
   
   // Add missing columns to Orders table if needed
   await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'OrderNumber')
+    BEGIN
+      ALTER TABLE Orders ADD OrderNumber NVARCHAR(50) NULL
+    END
     IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerName')
     BEGIN
       ALTER TABLE Orders ADD CustomerName NVARCHAR(100) NULL
