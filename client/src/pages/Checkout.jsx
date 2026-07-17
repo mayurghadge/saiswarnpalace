@@ -142,6 +142,14 @@ const Checkout = () => {
       return;
     }
 
+    const handleRemoveCoupon = () => {
+     setAppliedCoupon(null);
+     setDiscountAmount(0);
+     setCouponCode("");
+     saveAppliedCoupon(null);
+     toast.success("Coupon removed");
+    };
+
     try {
       const response = await api.post('/coupons/apply', {
         code: couponCode.trim().toUpperCase(),
