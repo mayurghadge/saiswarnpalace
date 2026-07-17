@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { Trash2, ShoppingCart } from 'lucide-react';
@@ -7,18 +7,6 @@ import { toast } from 'react-hot-toast';
 const Wishlist = () => {
   const { addToCart } = useCart();
   const [wishlist, setWishlist] = useState([]);
-
-  // Demo wishlist data
-  const demoWishlist = [
-    { id: 1, name: 'Gold Necklace', price: 45000, image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_600,h_600,c_fill/v1780295778/chain_nxgghq.jpg' },
-    { id: 2, name: 'Diamond Ring', price: 89000, image: 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_600,h_600,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg' },
-    { id: 3, name: 'Silver Earrings', price: 5000, image: 'https://res.cloudinary.com/dayhebhj7/image/fetch/f_auto,q_auto,w_600,h_600,c_fill/https://images.unsplash.com/photo-1602028915047-37269d1a73f7' }
-  ];
-
-  useEffect(() => {
-    // In real app, fetch from API
-    setWishlist(demoWishlist);
-  }, []);
 
   const handleAddToCart = (product) => {
     addToCart(product.id);
