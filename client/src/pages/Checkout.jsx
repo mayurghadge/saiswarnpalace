@@ -323,7 +323,19 @@ const Checkout = () => {
               <div className="space-y-8">
                 {/* Shipping Address */}
                 <div>
-                  <h2 className="text-lg font-medium text-gray-900 mb-4">Shipping Address</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-gray-900">Shipping Address</h2>
+                    <button 
+                      onClick={() => {
+                        setAddressForm({ name: user?.name || '', phone: user?.phone || '', address: '', city: '', state: '', pincode: '', isDefault: false });
+                        setEditingAddress(null);
+                        setShowAddressModal(true);
+                      }}
+                      className="text-[#9D7E2A] flex items-center gap-1 text-sm hover:underline"
+                    >
+                      <Plus size={14} /> Add New Address
+                    </button>
+                  </div>
                   
                   {/* Saved Addresses */}
                   {addresses.length > 0 && (
@@ -603,6 +615,112 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+
+      {/* Address Modal */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded max-w-md w-full mx-4 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold">{editingAddress ? 'Edit Address' : 'Add Address'}</h3>
+              <button
+                onClick={() => { setShowAddressModal(false); setEditingAddress(null); }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveAddress} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  required
+                  type="text"
+                  value={addressForm.name}
+                  onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                  required
+                  type="tel"
+                  value={addressForm.phone}
+                  onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={addressForm.address}
+                  onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <input
+                    required
+                    type="text"
+                    value={addressForm.city}
+                    onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <input
+                    required
+                    type="text"
+                    value={addressForm.state}
+                    onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+                <input
+                  required
+                  type="text"
+                  value={addressForm.pincode}
+                  onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Check size={16} className="text-[#9D7E2A]" />
+                <input
+                  type="checkbox"
+                  id="defaultAddressCheckout"
+                  checked={addressForm.isDefault}
+                  onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                />
+                <label htmlFor="defaultAddressCheckout" className="text-sm text-gray-700">Set as default address</label>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddressModal(false); setEditingAddress(null); }}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-[#9D7E2A] text-white py-2 rounded font-semibold hover:bg-yellow-700 transition"
+                >
+                  Save Address
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
