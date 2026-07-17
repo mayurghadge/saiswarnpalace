@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useGoldRate } from '../contexts/GoldRateContext';
-import { CreditCard, ArrowLeft, X, CheckCircle2, Check, Banknote, WalletCards } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { CreditCard, ArrowLeft, X, CheckCircle2, Check, Banknote, WalletCards, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
@@ -10,6 +11,7 @@ import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } fro
 const Checkout = () => {
   const { cart, cartTotal } = useCart();
   const { gstRate } = useGoldRate();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const displayCart = cart;
@@ -24,18 +26,42 @@ const Checkout = () => {
   
   const total = subtotal + tax + shipping - discountAmount;
 
+  // Load saved addresses from localStorage
+  const [addresses, setAddresses] = useState(() => {
+    const saved = localStorage.getItem('userAddresses');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedAddress, setSelectedAddress] = useState(null);
+
   const [step, setStep] = useState('shipping'); // 'shipping' or 'payment'
   const [form, setForm] = useState({
-    name: 'na',
-    phone: 'NA',
-    email: 'NA',
-    address: 'NA',
-    city: 'NA',
-    state: 'NA',
-    pincode: 'NA',
-    paymentMethod: 'NA',
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    paymentMethod: '',
     billingSameAsShipping: true
   });
+
+  // Initialize selected address
+  useEffect(() => {
+    if (addresses.length > 0) {
+      const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
+      setSelectedAddress(defaultAddress);
+      setForm(prev => ({
+        ...prev,
+        name: defaultAddress.name,
+        phone: defaultAddress.phone,
+        address: defaultAddress.address,
+        city: defaultAddress.city,
+        state: defaultAddress.state,
+        pincode: defaultAddress.pincode
+      }));
+    }
+  }, [addresses]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -115,6 +141,23 @@ const Checkout = () => {
 
   const completeOrder = async (paymentMethod) => {
   try {
+    // Save address if new
+    if (!selectedAddress) {
+      const newAddress = {
+        id: Date.now(),
+        name: form.name,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        isDefault: addresses.length === 0
+      };
+      const updatedAddresses = [...addresses, newAddress];
+      setAddresses(updatedAddresses);
+      localStorage.setItem('userAddresses', JSON.stringify(updatedAddresses));
+    }
+
     await api.post("/orders", {
       customerName: form.name,
       phone: form.phone,
@@ -221,16 +264,109 @@ const Checkout = () => {
                 {/* Shipping Address */}
                 <div>
                   <h2 className="text-lg font-medium text-gray-900 mb-4">Shipping Address</h2>
-                  <div className="border border-[#9D7E2A] rounded-lg p-4 mb-4">
-                    <p className="text-gray-800">{form.name}</p>
-                    <p className="text-gray-600">{form.address}</p>
-                    <p className="text-gray-600">{form.city}, {form.state} {form.pincode}</p>
-                    <p className="text-gray-600">India</p>
-                    <p className="text-gray-600">{form.phone}</p>
+                  
+                  {/* Saved Addresses */}
+                  {addresses.length > 0 && (
+                    <div className="space-y-4 mb-6">
+                      {addresses.map(addr => (
+                        <div 
+                          key={addr.id} 
+                          className={`border rounded-lg p-4 cursor-pointer transition ${selectedAddress?.id === addr.id ? 'border-[#9D7E2A] bg-[#9D7E2A]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                          onClick={() => {
+                            setSelectedAddress(addr);
+                            setForm(prev => ({
+                              ...prev,
+                              name: addr.name,
+                              phone: addr.phone,
+                              address: addr.address,
+                              city: addr.city,
+                              state: addr.state,
+                              pincode: addr.pincode
+                            }));
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-semibold text-gray-800">{addr.name}</p>
+                              <p className="text-gray-600">{addr.address}</p>
+                              <p className="text-gray-600">{addr.city}, {addr.state} {addr.pincode}</p>
+                              <p className="text-gray-600">India</p>
+                              <p className="text-gray-600">T: {addr.phone}</p>
+                            </div>
+                            {addr.isDefault && <span className="text-xs text-[#9D7E2A] font-medium">Default</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Address Form */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input
+                          type="text"
+                          value={form.name}
+                          onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-4 py-2"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={form.phone}
+                          onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-4 py-2"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                      <textarea
+                        rows={3}
+                        value={form.address}
+                        onChange={(e) => setForm(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full border border-gray-300 rounded px-4 py-2"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <input
+                          type="text"
+                          value={form.city}
+                          onChange={(e) => setForm(prev => ({ ...prev, city: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-4 py-2"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                        <input
+                          type="text"
+                          value={form.state}
+                          onChange={(e) => setForm(prev => ({ ...prev, state: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-4 py-2"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label>
+                        <input
+                          type="text"
+                          value={form.pincode}
+                          onChange={(e) => setForm(prev => ({ ...prev, pincode: e.target.value }))}
+                          className="w-full border border-gray-300 rounded px-4 py-2"
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <button className="px-6 py-2 bg-[#9D7E2A] text-white rounded-full hover:bg-yellow-700 transition font-medium text-sm">
-                    NEW ADDRESS
-                  </button>
                 </div>
 
                 {/* Continue Button */}
