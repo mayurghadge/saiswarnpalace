@@ -22,47 +22,59 @@ exports.createOrder = async (req, res) => {
     const {
       customerName,
       phone,
+      email,
       address,
+      city,
+      state,
+      pincode,
       paymentMethod,
       totalAmount,
       items,
     } = req.body;
 
     const pool = await connectDB();
+    const userId = req.user?.id || null;
+    const orderNumber = `ORD-${Date.now()}`;
 
     // Insert Order
     const orderResult = await pool
       .request()
-      .input("customerName", sql.NVarChar, customerName)
-      .input("phone", sql.NVarChar, phone)
-      .input("address", sql.NVarChar, address)
-      .input("paymentMethod", sql.NVarChar, paymentMethod)
-      .input("totalAmount", sql.Decimal(18, 2), totalAmount)
+      .input("user_id", sql.Int, userId)
+      .input("order_number", sql.NVarChar, orderNumber)
+      .input("subtotal", sql.Decimal(18, 2), totalAmount)
+      .input("discount", sql.Decimal(18, 2), 0)
+      .input("tax", sql.Decimal(18, 2), 0)
+      .input("shipping", sql.Decimal(18, 2), 0)
+      .input("total", sql.Decimal(18, 2), totalAmount)
+      .input("payment_method", sql.NVarChar, paymentMethod)
+      .input("payment_status", sql.NVarChar, paymentMethod === 'Cash on Delivery' ? 'pending' : 'completed')
+      .input("order_status", sql.NVarChar, 'pending')
       .query(`
         INSERT INTO Orders
-        (CustomerName, Phone, Address, PaymentMethod, TotalAmount, Status, CreatedAt)
-        OUTPUT INSERTED.Id
+        (user_id, order_number, subtotal, discount, tax, shipping, total, payment_method, payment_status, order_status, created_at, updated_at)
+        OUTPUT INSERTED.id
         VALUES
-        (@customerName, @phone, @address, @paymentMethod,
-         @totalAmount, 'Pending', GETDATE())
+        (@user_id, @order_number, @subtotal, @discount, @tax, @shipping, @total, @payment_method, @payment_status, @order_status, GETDATE(), GETDATE())
       `);
 
-    const orderId = orderResult.recordset[0].Id;
+    const orderId = orderResult.recordset[0].id;
 
     // Insert Order Items
     if (items && items.length > 0) {
       for (const item of items) {
+        const itemPrice = item.discount_price || item.price;
         await pool
           .request()
-          .input("orderId", sql.Int, orderId)
-          .input("productId", sql.Int, item.id)
-          .input("quantity", sql.Int, item.quantity)
-          .input("price", sql.Decimal(18, 2), item.price)
+          .input("order_id", sql.Int, orderId)
+          .input("product_id", sql.Int, item.id)
+          .input("quantity", sql.Int, item.quantity || 1)
+          .input("price", sql.Decimal(18, 2), itemPrice)
+          .input("total", sql.Decimal(18, 2), (itemPrice * (item.quantity || 1)))
           .query(`
             INSERT INTO OrderItems
-            (OrderId, ProductId, Quantity, PriceAtTime)
+            (order_id, product_id, quantity, price, total)
             VALUES
-            (@orderId, @productId, @quantity, @price)
+            (@order_id, @product_id, @quantity, @price, @total)
           `);
       }
     }
@@ -82,7 +94,7 @@ exports.createOrder = async (req, res) => {
 };
 
 // ===============================
-// Get All Orders (Admin)
+// Get All Orders (Admin) - NOTE: Admin uses adminController.getOrders, not this one
 // ===============================
 exports.getOrders = async (req, res) => {
   try {
@@ -91,7 +103,7 @@ exports.getOrders = async (req, res) => {
     const result = await pool.request().query(`
       SELECT *
       FROM Orders
-      ORDER BY CreatedAt DESC
+      ORDER BY created_at DESC
     `);
 
     res.json(result.recordset);
@@ -116,7 +128,7 @@ exports.getOrderById = async (req, res) => {
       .query(`
         SELECT *
         FROM Orders
-        WHERE Id=@id
+        WHERE id=@id
       `);
 
     const items = await pool
@@ -125,12 +137,12 @@ exports.getOrderById = async (req, res) => {
       .query(`
         SELECT
           oi.*,
-          p.Name,
-          p.ImageURL
+          p.Name as product_name,
+          p.ImageURL as product_image
         FROM OrderItems oi
         LEFT JOIN Products p
-        ON oi.ProductId=p.Id
-        WHERE oi.OrderId=@id
+        ON oi.product_id=p.id
+        WHERE oi.order_id=@id
       `);
 
     res.json({
@@ -155,11 +167,11 @@ exports.updateOrderStatus = async (req, res) => {
     await pool
       .request()
       .input("id", sql.Int, req.params.id)
-      .input("status", sql.NVarChar, req.body.status)
+      .input("order_status", sql.NVarChar, req.body.order_status || req.body.status)
       .query(`
         UPDATE Orders
-        SET Status=@status
-        WHERE Id=@id
+        SET order_status=@order_status, updated_at=GETDATE()
+        WHERE id=@id
       `);
 
     res.json({
@@ -179,18 +191,21 @@ exports.updateOrderStatus = async (req, res) => {
 // ===============================
 exports.getMyOrders = async (req, res) => {
   try {
-    const phone = req.params.phone;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
     const pool = await connectDB();
 
     const result = await pool
       .request()
-      .input("phone", sql.NVarChar, phone)
+      .input("user_id", sql.Int, userId)
       .query(`
         SELECT *
         FROM Orders
-        WHERE Phone=@phone
-        ORDER BY CreatedAt DESC
+        WHERE user_id=@user_id
+        ORDER BY created_at DESC
       `);
 
     res.json(result.recordset);

@@ -28,7 +28,8 @@ exports.getProducts = async (req, res) => {
   try {
     const pool = await connectDB();
     await ensureProductExtraColumns(pool);
-    const result = await pool.request().query(`
+    const { category } = req.query;
+    let query = `
       SELECT 
         p.Id AS id,
         p.Name AS name,
@@ -48,8 +49,14 @@ exports.getProducts = async (req, res) => {
       FROM Products p
       LEFT JOIN Categories c ON p.CategoryId = c.Id
       WHERE p.IsAvailable = 1
-      ORDER BY p.CreatedAt DESC
-    `);
+    `;
+    const request = pool.request();
+    if (category) {
+      query += ` AND p.CategoryId = @categoryId`;
+      request.input('categoryId', sql.Int, category);
+    }
+    query += ` ORDER BY p.CreatedAt DESC`;
+    const result = await request.query(query);
     res.status(200).json({ products: result.recordset });
   } catch (error) {
     console.error('Get Products Error:', error);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useGoldRate } from '../contexts/GoldRateContext';
 import { Heart } from 'lucide-react';
@@ -10,11 +10,12 @@ const API_BASE =
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_800,h_800,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg';
 
 const Products = () => {
-  const [search, setSearch] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category');
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(categoryParam || '');
   const { addToCart, addToWishlist } = useCart();
   const { calculateProductEstimate } = useGoldRate();
 
@@ -41,7 +42,11 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_BASE}/products`);
+      const url = new URL(`${API_BASE}/products`, window.location.origin);
+      if (selectedCategory) {
+        url.searchParams.set('category', selectedCategory);
+      }
+      const res = await fetch(url.toString());
       const data = await res.json();
       setProducts(data.products || []);
     } catch (err) {
@@ -64,7 +69,19 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, []);
+  }, [selectedCategory]);
+  
+  useEffect(() => {
+    if (categoryParam !== selectedCategory) {
+      const newParams = new URLSearchParams(searchParams);
+      if (selectedCategory) {
+        newParams.set('category', selectedCategory);
+      } else {
+        newParams.delete('category');
+      }
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [selectedCategory]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name?.toLowerCase().includes(search.toLowerCase());
