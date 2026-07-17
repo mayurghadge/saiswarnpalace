@@ -1,9 +1,47 @@
 const { connectDB, sql } = require("../config/db");
 
 // ===============================
-// Ensure Orders table has shipping address columns
+// Ensure Orders and OrderItems tables exist with all columns
 // ===============================
 async function ensureOrdersTable(pool) {
+  // Create Orders table if it doesn't exist
+  await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Orders')
+    BEGIN
+      CREATE TABLE Orders (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        UserId INT NULL,
+        OrderNumber NVARCHAR(50) NOT NULL,
+        TotalAmount DECIMAL(18,2) NOT NULL,
+        Status NVARCHAR(50) NOT NULL DEFAULT 'pending',
+        CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+        CustomerName NVARCHAR(100) NULL,
+        CustomerPhone NVARCHAR(20) NULL,
+        CustomerEmail NVARCHAR(100) NULL,
+        ShippingAddress NVARCHAR(MAX) NULL,
+        ShippingCity NVARCHAR(100) NULL,
+        ShippingState NVARCHAR(100) NULL,
+        ShippingPincode NVARCHAR(20) NULL,
+        PaymentMethod NVARCHAR(50) NULL
+      )
+    END
+  `);
+  
+  // Create OrderItems table if it doesn't exist
+  await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'OrderItems')
+    BEGIN
+      CREATE TABLE OrderItems (
+        Id INT IDENTITY(1,1) PRIMARY KEY,
+        OrderId INT NOT NULL FOREIGN KEY REFERENCES Orders(Id),
+        ProductId INT NOT NULL,
+        Quantity INT NOT NULL DEFAULT 1,
+        PriceAtTime DECIMAL(18,2) NOT NULL
+      )
+    END
+  `);
+  
+  // Add missing columns to Orders table if needed
   await pool.request().query(`
     IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Orders' AND COLUMN_NAME = 'CustomerName')
     BEGIN
