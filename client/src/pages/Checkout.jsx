@@ -187,7 +187,8 @@ const Checkout = () => {
     });
 
   } catch (error) {
-    toast.error("Failed to save order");
+    console.error("Error saving order:", error);
+    toast.error(error.response?.data?.message || "Failed to save order");
   }
 };
   const handleCodOrder = () => {
