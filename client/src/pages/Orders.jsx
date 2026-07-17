@@ -103,6 +103,18 @@ const Orders = () => {
   // If viewing single order
   if (id) {
     const order = orders.find(o => o.id === id);
+
+    if (!order) {
+      return (
+        <div className="py-12 bg-white min-h-screen">
+          <div className="max-w-3xl mx-auto px-4 text-center">
+            <h1 className="text-2xl font-bold text-gray-900">Order not found</h1>
+            <Link to="/orders" className="mt-4 inline-block text-[#9D7E2A] hover:underline">Back to My Orders</Link>
+          </div>
+        </div>
+      );
+    }
+
     const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const tax = order.total - subtotal;
 

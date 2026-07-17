@@ -23,6 +23,7 @@ const Profile = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
   // Profile and proofs data
   const [profile, setProfile] = useState(null);
@@ -139,6 +140,20 @@ const Profile = () => {
     { id: 'newsletter', label: 'Newsletter Subscriptions' },
   ];
 
+  const handleMenuSelect = (tabId) => {
+    if (tabId === 'orders') {
+      navigate('/orders');
+      return;
+    }
+
+    if (tabId === 'wishlist') {
+      navigate('/wishlist');
+      return;
+    }
+
+    setActiveTab(tabId);
+  };
+
   return (
     <div className="py-12 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -149,7 +164,7 @@ const Profile = () => {
               {menuItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleMenuSelect(item.id)}
                   className={`w-full flex items-center gap-3 px-0 py-2 text-left transition ${
                     activeTab === item.id ? 'text-[#9D7E2A] font-medium' : 'text-gray-600 hover:text-gray-900'
                   }`}
@@ -470,6 +485,59 @@ const Profile = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'account-info' && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-6">Account Information</h3>
+                <div className="max-w-xl border border-gray-200 rounded p-6 space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Full Name</p>
+                    <p className="text-gray-900">{profile?.name || user?.name || 'User'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Email Address</p>
+                    <p className="text-gray-900">{profile?.email || user?.email || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Phone Number</p>
+                    <p className="text-gray-900">{profile?.phone || user?.phone || '-'}</p>
+                  </div>
+                  <p className="text-sm text-gray-500">Account editing will be available here soon.</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-6">My Product Reviews</h3>
+                <div className="border border-gray-200 rounded p-6 text-gray-600">
+                  You have not submitted any product reviews yet.
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'newsletter' && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-6">Newsletter Subscriptions</h3>
+                <div className="max-w-xl border border-gray-200 rounded p-6">
+                  <label className="flex items-start gap-3 text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={newsletterSubscribed}
+                      onChange={(event) => {
+                        setNewsletterSubscribed(event.target.checked);
+                        toast.success(event.target.checked ? 'Newsletter subscription enabled' : 'Newsletter subscription disabled');
+                      }}
+                      className="mt-1 h-4 w-4"
+                    />
+                    <span>
+                      <span className="block font-medium">Jewellery offers and updates</span>
+                      Receive new collection announcements, offers, and gold-rate updates by email.
+                    </span>
+                  </label>
                 </div>
               </div>
             )}
