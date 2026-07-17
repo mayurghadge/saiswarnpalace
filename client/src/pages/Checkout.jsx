@@ -142,14 +142,6 @@ const Checkout = () => {
       return;
     }
 
-    const handleRemoveCoupon = () => {
-     setAppliedCoupon(null);
-     setDiscountAmount(0);
-     setCouponCode("");
-     saveAppliedCoupon(null);
-     toast.success("Coupon removed");
-    };
-
     try {
       const response = await api.post('/coupons/apply', {
         code: couponCode.trim().toUpperCase(),
@@ -166,6 +158,14 @@ const Checkout = () => {
       saveAppliedCoupon(null);
       toast.error(error.response?.data?.message || 'Failed to apply coupon');
     }
+  };
+
+  const handleRemoveCoupon = () => {
+     setAppliedCoupon(null);
+     setDiscountAmount(0);
+     setCouponCode("");
+     saveAppliedCoupon(null);
+     toast.success("Coupon removed");
   };
 
   const handleRazorpayPayment = () => {
@@ -634,6 +634,7 @@ const Checkout = () => {
                     onChange={(e) => setCouponCode(e.target.value)}
                     classname="flex-1 border border-gray-300 rounded px-3 py-2 text-sm"
                   />
+
                   <button
                     type="submit"
                     className="px-4 py-2 bg-gray-900 text-white rounded-full text-sm"
