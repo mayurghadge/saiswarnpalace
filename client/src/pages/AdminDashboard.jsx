@@ -326,7 +326,15 @@ const AdminDashboard = () => {
     diamond_price: '', item_code: '', huid_hallmark: '', images: '', stock: '', is_featured: false, is_active: true
   });
   const [productImageFile, setProductImageFile] = useState(null);
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', image: '' });
+  const [priceCalculation, setPriceCalculation] = useState(null);
+  const [calculatingPrice, setCalculatingPrice] = useState(false);
+  const emptyCategoryForm = () => ({
+    name: '', description: '', image: '', material: 'Gold', purity: '22K',
+    making_charges_per_gram: '', wastage_percentage: '',
+    gst_percentage: '3', default_diamond_price: '', calculation_type: 'WEIGHT_BASED',
+    display_order: '0', is_active: true
+  });
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm());
   const [categoryImageFile, setCategoryImageFile] = useState(null);
   const [couponForm, setCouponForm] = useState(createEmptyCouponForm());
   const [couponErrors, setCouponErrors] = useState({});
@@ -481,6 +489,51 @@ const AdminDashboard = () => {
       setCategories(data.categories || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const applyCategoryDefaults = (categoryId) => {
+    const category = categories.find(item => String(item.id) === String(categoryId));
+    setProductForm(current => ({
+      ...current,
+      category_id: categoryId,
+      material: category?.material || current.material,
+      purity: String(category?.purity || current.purity || '22K').toLowerCase(),
+      making_charges: category?.making_charges_per_gram ?? current.making_charges,
+      wastage_percentage: category?.wastage_percentage ?? current.wastage_percentage,
+      diamond_price: category?.default_diamond_price ?? current.diamond_price,
+    }));
+  };
+
+  const calculateProductPrice = async () => {
+    if (!productForm.category_id || Number(productForm.weight) <= 0) {
+      toast.error('Select a category and enter product weight first');
+      return;
+    }
+
+    try {
+      setCalculatingPrice(true);
+      const res = await fetch(`${publicApiBaseUrl}/categories/${productForm.category_id}/calculate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weight: Number(productForm.weight),
+          diamond_price: Number(productForm.diamond_price || 0),
+          fixed_making_charge: 0,
+          other_charges: 0,
+          discount_percentage: 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Price calculation failed');
+
+      setPriceCalculation(data.calculation);
+      setProductForm(current => ({ ...current, price: data.calculation.final_price }));
+      toast.success('Price calculated using product weight and current metal rate');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setCalculatingPrice(false);
     }
   };
 
@@ -927,7 +980,7 @@ const AdminDashboard = () => {
           <div>
             <div className="flex justify-between mb-8">
               <h1 className="text-3xl font-bold">Categories</h1>
-              <button onClick={() => { setEditingCategory(null); setCategoryForm({name:'', description:'', image:''}); setShowCategoryModal(true); }} 
+              <button onClick={() => { setEditingCategory(null); setCategoryForm(emptyCategoryForm()); setShowCategoryModal(true); }}
                 className="flex items-center gap-2 px-6 py-3 bg-[#9D7E2A] text-white rounded-lg font-semibold">
                 <Plus size={20} /> Add
               </button>
@@ -1296,7 +1349,7 @@ const AdminDashboard = () => {
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Name</label><input required value={productForm.name} onChange={e=> setProductForm({...productForm, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Description</label><textarea value={productForm.description} onChange={e=> setProductForm({...productForm, description: e.target.value})} className="w-full px-4 py-2 border rounded-lg" rows={3}/></div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Category</label><select required value={productForm.category_id} onChange={e=> setProductForm({...productForm, category_id: e.target.value})} className="w-full px-4 py-2 border rounded-lg">{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Category</label><select required value={productForm.category_id} onChange={e=> applyCategoryDefaults(e.target.value)} className="w-full px-4 py-2 border rounded-lg"><option value="">Select category</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><p className="text-xs text-gray-500 mt-1">Selecting a category automatically fills its pricing rules.</p></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Price</label><input type="number" required value={productForm.price} onChange={e=> setProductForm({...productForm, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -1304,13 +1357,15 @@ const AdminDashboard = () => {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Stock</label><input type="number" required value={productForm.stock} onChange={e=> setProductForm({...productForm, stock: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Weight (g)</label><input type="number" step="0.01" value={productForm.weight} onChange={e=> setProductForm({...productForm, weight: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Product Weight (g)</label><input type="number" min="0.001" step="0.001" value={productForm.weight} onChange={e=> { setProductForm({...productForm, weight: e.target.value}); setPriceCalculation(null); }} className="w-full px-4 py-2 border rounded-lg" /><p className="text-xs text-gray-500 mt-1">Weight is entered separately for every product.</p></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Purity</label><select value={productForm.purity} onChange={e=> setProductForm({...productForm, purity: e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="24k">24K</option><option value="22k">22K</option><option value="18k">18K</option><option value="999">999 Pure Silver</option><option value="925">925 Silver</option></select></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Making Charges / gm</label><input type="number" step="0.01" value={productForm.making_charges} onChange={e=> setProductForm({...productForm, making_charges: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Wastage (%)</label><input type="number" step="0.01" value={productForm.wastage_percentage} onChange={e=> setProductForm({...productForm, wastage_percentage: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               </div>
+              <button type="button" onClick={calculateProductPrice} disabled={calculatingPrice} className="w-full px-5 py-3 rounded-lg bg-emerald-600 text-white font-semibold disabled:opacity-60">{calculatingPrice ? 'Calculating…' : 'Calculate Price from Weight & Current Rate'}</button>
+              {priceCalculation && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm"><p className="font-bold text-emerald-800 mb-2">Price Calculation</p><div className="grid grid-cols-2 gap-2"><span>Rate / gram</span><strong>₹{Number(priceCalculation.rate_per_gram).toLocaleString('en-IN')}</strong><span>Metal value</span><strong>₹{Number(priceCalculation.metal_value).toLocaleString('en-IN')}</strong><span>Wastage</span><strong>₹{Number(priceCalculation.wastage_amount).toLocaleString('en-IN')}</strong><span>Making charges</span><strong>₹{Number(priceCalculation.making_charges).toLocaleString('en-IN')}</strong><span>GST</span><strong>₹{Number(priceCalculation.gst_amount).toLocaleString('en-IN')}</strong><span className="font-bold">Final price</span><strong className="text-emerald-700">₹{Number(priceCalculation.final_price).toLocaleString('en-IN')}</strong></div></div>}
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Diamond Price</label><input type="number" step="0.01" value={productForm.diamond_price} onChange={e=> setProductForm({...productForm, diamond_price: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Material</label><input type="text" value={productForm.material} onChange={e=> setProductForm({...productForm, material: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
@@ -1333,11 +1388,24 @@ const AdminDashboard = () => {
       {/* Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8">
             <h2 className="text-2xl font-bold mb-6">{editingCategory ? 'Edit Category' : 'Add Category'}</h2>
             <form onSubmit={handleSaveCategory} className="space-y-4">
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Name</label><input required value={categoryForm.name} onChange={e=> setCategoryForm({...categoryForm, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Description</label><textarea value={categoryForm.description} onChange={e=> setCategoryForm({...categoryForm, description: e.target.value})} className="w-full px-4 py-2 border rounded-lg" rows={3}/></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Material</label><select value={categoryForm.material} onChange={e=>setCategoryForm({...categoryForm, material:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option>Gold</option><option>Silver</option><option>Diamond</option><option>Platinum</option></select></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Purity</label><select value={categoryForm.purity} onChange={e=>setCategoryForm({...categoryForm, purity:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="24K">24K</option><option value="22K">22K</option><option value="18K">18K</option><option value="999">999 Silver</option><option value="925">925 Silver</option></select></div>
+              </div>
+              <div><label className="block text-sm font-semibold text-gray-700 mb-1">Making Charge / g</label><input type="number" min="0" step="0.01" value={categoryForm.making_charges_per_gram} onChange={e=>setCategoryForm({...categoryForm, making_charges_per_gram:e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Wastage (%)</label><input type="number" min="0" step="0.01" value={categoryForm.wastage_percentage} onChange={e=>setCategoryForm({...categoryForm, wastage_percentage:e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">GST (%)</label><input type="number" min="0" step="0.01" value={categoryForm.gst_percentage} onChange={e=>setCategoryForm({...categoryForm, gst_percentage:e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Default Diamond/Stone Price</label><input type="number" min="0" step="0.01" value={categoryForm.default_diamond_price} onChange={e=>setCategoryForm({...categoryForm, default_diamond_price:e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Calculation Type</label><select value={categoryForm.calculation_type} onChange={e=>setCategoryForm({...categoryForm, calculation_type:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="WEIGHT_BASED">Weight Based</option></select></div>
+              </div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Image URL</label><input type="text" value={categoryForm.image} onChange={e=> setCategoryForm({...categoryForm, image: e.target.value})} className="w-full px-4 py-2 border rounded-lg mb-3" /></div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Upload Image</label><input type="file" accept="image/*" onChange={e=> setCategoryImageFile(e.target.files[0])} className="w-full" />{categoryImageFile && <img src={URL.createObjectURL(categoryImageFile)} alt="Preview" className="mt-3 w-32 h-32 object-cover rounded" />}</div>
               <div className="flex gap-3 pt-6">
