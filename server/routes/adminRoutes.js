@@ -13,6 +13,7 @@ router.use(authMiddleware, requireAdmin);
 
 // Dashboard
 router.get('/dashboard', adminController.getDashboardStats);
+router.get('/reports', adminController.getReports);
 
 // Users
 router.get('/users', adminController.getUsers);

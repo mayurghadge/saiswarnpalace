@@ -942,3 +942,65 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// Sales and user reports (dates are calculated in India Standard Time)
+exports.getReports = async (req, res) => {
+  try {
+    const pool = await connectDB();
+    const result = await pool.request().query(`
+      DECLARE @TodayIST DATE = CAST(DATEADD(MINUTE, 330, GETUTCDATE()) AS DATE);
+
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN CAST(DATEADD(MINUTE, 330, CreatedAt) AS DATE) = @TodayIST
+           AND LOWER(COALESCE(Status, '')) NOT IN ('cancelled', 'refunded')
+          THEN TotalAmount ELSE 0 END), 0) AS today_sales,
+        SUM(CASE
+          WHEN CAST(DATEADD(MINUTE, 330, CreatedAt) AS DATE) = @TodayIST
+          THEN 1 ELSE 0 END) AS today_orders,
+        COALESCE(SUM(CASE
+          WHEN LOWER(COALESCE(Status, '')) NOT IN ('cancelled', 'refunded')
+          THEN TotalAmount ELSE 0 END), 0) AS total_sales,
+        COUNT(*) AS total_orders
+      FROM Orders;
+
+      SELECT COUNT(*) AS total_users FROM Users;
+
+      SELECT TOP 30
+        CAST(DATEADD(MINUTE, 330, CreatedAt) AS DATE) AS report_date,
+        COUNT(*) AS order_count,
+        SUM(CASE WHEN LOWER(COALESCE(Status, '')) NOT IN ('cancelled', 'refunded')
+          THEN 1 ELSE 0 END) AS sale_orders,
+        COALESCE(SUM(CASE WHEN LOWER(COALESCE(Status, '')) NOT IN ('cancelled', 'refunded')
+          THEN TotalAmount ELSE 0 END), 0) AS sales_amount
+      FROM Orders
+      GROUP BY CAST(DATEADD(MINUTE, 330, CreatedAt) AS DATE)
+      ORDER BY report_date DESC;
+
+      SELECT
+        u.Id AS user_id,
+        u.FullName AS user_name,
+        u.Email AS user_email,
+        u.Phone AS user_phone,
+        COUNT(o.Id) AS order_count,
+        COALESCE(SUM(CASE WHEN LOWER(COALESCE(o.Status, '')) NOT IN ('cancelled', 'refunded')
+          THEN o.TotalAmount ELSE 0 END), 0) AS total_spent,
+        MAX(o.CreatedAt) AS last_order_at
+      FROM Users u
+      LEFT JOIN Orders o ON o.UserId = u.Id
+      GROUP BY u.Id, u.FullName, u.Email, u.Phone
+      ORDER BY total_spent DESC, order_count DESC, u.FullName;
+    `);
+
+    const summary = result.recordsets[0]?.[0] || {};
+    const usersSummary = result.recordsets[1]?.[0] || {};
+    res.status(200).json({
+      summary: { ...summary, total_users: usersSummary.total_users || 0 },
+      dailyReports: result.recordsets[2] || [],
+      userReports: result.recordsets[3] || []
+    });
+  } catch (error) {
+    console.error('Get Reports Error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

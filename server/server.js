@@ -349,6 +349,11 @@ app.get(
   adminController.getDashboardStats
 );
 
+app.get(
+  '/api/admin/reports',
+  adminController.getReports
+);
+
 // --------------------------------------------------
 // ADMIN CATEGORIES
 // Uses the new categoryController

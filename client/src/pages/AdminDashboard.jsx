@@ -17,7 +17,10 @@ import {
   LogOut,
   Eye,
   ShieldCheck,
-  Tag
+  Tag,
+  BarChart3,
+  IndianRupee,
+  CalendarDays
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -29,6 +32,7 @@ const SERVER_BASE =
   import.meta.env.VITE_SERVER_URL || publicApiBaseUrl.replace(/\/api\/?$/, '');
 const ADMIN_AUTO_REFRESH_MS = 20000;
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
+const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('adminToken');
@@ -146,6 +150,7 @@ const ADMIN_TAB_IDS = new Set([
   'categories',
   'orders',
   'users',
+  'reports',
   'verification',
   'coupons',
   'contacts',
@@ -306,6 +311,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
+  const [reports, setReports] = useState({ summary: {}, dailyReports: [], userReports: [] });
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -429,13 +435,14 @@ const AdminDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const [statsRes, productsRes, ordersRes, usersRes, contactsRes, couponsRes] = await Promise.all([
+      const [statsRes, productsRes, ordersRes, usersRes, contactsRes, couponsRes, reportsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/dashboard`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/products`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/orders`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/contacts`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/coupons`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/reports`, { headers: getAuthHeaders() }),
       ]);
 
       const statsData = await statsRes.json();
@@ -444,6 +451,7 @@ const AdminDashboard = () => {
       const usersData = await usersRes.json();
       const contactsData = await contactsRes.json();
       const couponsData = await couponsRes.json();
+      const reportsData = await reportsRes.json();
 
       setDashboardStats(statsData);
       setProducts(productsData.products || []);
@@ -451,6 +459,7 @@ const AdminDashboard = () => {
       setUsers(usersData.users || []);
       setContacts(contactsData.contacts || []);
       setCoupons(couponsData.coupons || []);
+      if (reportsRes.ok) setReports(reportsData);
 
       if (statsData.goldRates) {
         const rates = statsData.goldRates;
@@ -789,6 +798,7 @@ const AdminDashboard = () => {
     { id: 'categories', icon: Tag, label: 'Categories' },
     { id: 'orders', icon: ShoppingBag, label: 'Orders' },
     { id: 'users', icon: Users, label: 'Users' },
+    { id: 'reports', icon: BarChart3, label: 'Reports' },
     { id: 'verification', icon: ShieldCheck, label: 'Verification Requests' },
     { id: 'coupons', icon: Percent, label: 'Coupons' },
     { id: 'contacts', icon: MessageSquare, label: 'Contacts' },
@@ -974,6 +984,74 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+        {activeTab === 'reports' && (
+          <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold">Sales & User Reports</h1>
+                <p className="text-gray-500 mt-1">Daily figures use India Standard Time (IST).</p>
+              </div>
+              <button onClick={loadDashboardData} className="px-4 py-2 rounded-lg bg-[#9D7E2A] text-white hover:bg-[#856b24]">
+                Refresh Report
+              </button>
+            </div>
+
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+              {[
+                { label: "Today's Sales", value: formatCurrency(reports.summary?.today_sales), icon: IndianRupee, color: 'bg-emerald-100 text-emerald-700' },
+                { label: "Today's Orders", value: reports.summary?.today_orders || 0, icon: CalendarDays, color: 'bg-amber-100 text-amber-700' },
+                { label: 'Total Sales', value: formatCurrency(reports.summary?.total_sales), icon: TrendingUp, color: 'bg-blue-100 text-blue-700' },
+                { label: 'Registered Users', value: reports.summary?.total_users || 0, icon: Users, color: 'bg-purple-100 text-purple-700' },
+              ].map(({ label, value, icon: Icon, color }) => (
+                <div key={label} className="bg-white rounded-2xl shadow-lg p-6">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}><Icon size={24} /></div>
+                  <p className="text-2xl font-bold break-words">{value}</p>
+                  <p className="text-gray-500 mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+              <div className="p-6 border-b"><h2 className="text-xl font-bold">Daily Sales Report (Last 30 Sales Days)</h2></div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[650px]">
+                  <thead className="bg-gray-50"><tr><th className="p-4 text-left">Date</th><th className="p-4 text-left">All Orders</th><th className="p-4 text-left">Sale Orders</th><th className="p-4 text-left">Sales Amount</th></tr></thead>
+                  <tbody>
+                    {reports.dailyReports?.map(day => (
+                      <tr key={day.report_date} className="border-t">
+                        <td className="p-4 font-medium">{new Date(day.report_date).toLocaleDateString('en-IN')}</td>
+                        <td className="p-4">{day.order_count}</td>
+                        <td className="p-4">{day.sale_orders}</td>
+                        <td className="p-4 font-bold text-emerald-700">{formatCurrency(day.sales_amount)}</td>
+                      </tr>
+                    ))}
+                    {!reports.dailyReports?.length && <tr><td colSpan="4" className="p-8 text-center text-gray-500">No sales report available yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div className="p-6 border-b"><h2 className="text-xl font-bold">User-wise Purchase Report</h2></div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[850px]">
+                  <thead className="bg-gray-50"><tr><th className="p-4 text-left">User</th><th className="p-4 text-left">Phone</th><th className="p-4 text-left">Orders</th><th className="p-4 text-left">Total Purchased</th><th className="p-4 text-left">Last Order</th></tr></thead>
+                  <tbody>
+                    {reports.userReports?.map(user => (
+                      <tr key={user.user_id} className="border-t">
+                        <td className="p-4"><p className="font-medium">{user.user_name}</p><p className="text-sm text-gray-500">{user.user_email}</p></td>
+                        <td className="p-4">{user.user_phone || '-'}</td>
+                        <td className="p-4">{user.order_count}</td>
+                        <td className="p-4 font-bold text-[#9D7E2A]">{formatCurrency(user.total_spent)}</td>
+                        <td className="p-4">{user.last_order_at ? new Date(user.last_order_at).toLocaleDateString('en-IN') : 'No orders'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
