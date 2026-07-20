@@ -49,22 +49,16 @@ const Products = () => {
   const metalColorFilter =
     searchParams.get('metalColor') || '';
 
-  const minPrice = Number(
-    searchParams.get('minPrice') || 0
-);
-
-const maxPrice = Number(
-  searchParams.get('maxPrice') || 0
-);
+  const minPrice = Number(searchParams.get('minPrice') || 0);
+  const maxPrice = Number(searchParams.get('maxPrice') || 0);
   const categoryParam = searchParams.get('category') || '';
   const menuParam = searchParams.get('menu') || '';
+  const searchParam = searchParams.get('search') || '';
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] =
-    useState(categoryParam);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParam);
 
   const { addToCart, addToWishlist } = useCart();
   const { calculateProductEstimate } = useGoldRate();
@@ -113,16 +107,9 @@ const maxPrice = Number(
         window.location.origin
       );
 
-      // Numeric category IDs are sent to the backend.
-      // Names such as "jhumka" are filtered in the frontend.
-      if (
-        selectedCategory &&
-        /^\d+$/.test(selectedCategory)
-      ) {
-        url.searchParams.set(
-          'category',
-          selectedCategory
-        );
+      // The API accepts either a numeric category ID or a category name.
+      if (categoryFilter) {
+        url.searchParams.set('category', categoryFilter);
       }
 
       const response = await fetch(url.toString());
@@ -195,16 +182,14 @@ const maxPrice = Number(
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory]);
+  }, [categoryFilter]);
 
   useEffect(() => {
-    setSelectedCategory(categoryParam);
-  }, [categoryParam]);
+    setSearch(searchParam);
+  }, [searchParam]);
 
   const handleCategoryChange = (event) => {
     const value = event.target.value;
-
-    setSelectedCategory(value);
 
     const newParams = new URLSearchParams(
       searchParams
@@ -220,11 +205,25 @@ const maxPrice = Number(
     setSearchParams(newParams);
   };
 
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setSearch(value);
+
+    const newParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      newParams.set('search', value);
+    } else {
+      newParams.delete('search');
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
   const handleClearFilters = () => {
-    setSelectedCategory('');
     setSearch('');
     setSearchParams({});
   };
+
+  const hasActiveFilters = Boolean(searchParams.toString());
 
   const filteredProducts = products.filter(
   (product) => {
@@ -240,45 +239,58 @@ const maxPrice = Number(
 
     const searchableText = normalizeFilter(
       [
-        product.name,
-        product.description,
-        product.item_code
+        product.name ?? product.Name,
+        product.description ?? product.Description,
+        product.item_code ?? product.itemCode ?? product.ItemCode
       ]
         .filter(Boolean)
         .join(' ')
     );
 
     const productCategory = normalizeFilter(
-      product.category_name ||
-      product.category ||
+      product.category_name ??
+      product.categoryName ??
+      product.CategoryName ??
+      product.category ??
+      ''
+    );
+
+    const productCategoryId = String(
+      product.category_id ??
+      product.categoryId ??
+      product.CategoryId ??
+      product.CategoryID ??
       ''
     );
 
     const productMaterial = normalizeFilter(
-      product.material ||
-      product.effective_material ||
+      product.material ??
+      product.Material ??
+      product.effective_material ??
+      product.EffectiveMaterial ??
       ''
     );
 
     const productStyle = normalizeFilter(
-      product.style || ''
+      product.style ?? product.Style ?? ''
     );
 
     const productGender = normalizeFilter(
-      product.gender || ''
+      product.gender ?? product.Gender ?? ''
     );
 
     const productOccasion = normalizeFilter(
-      product.occasion || ''
+      product.occasion ?? product.Occasion ?? ''
     );
 
     const productCollection = normalizeFilter(
-      product.collection || ''
+      product.collection ?? product.Collection ?? ''
     );
 
     const productMetalColor = normalizeFilter(
-      product.metal_color ||
-      product.metalColor ||
+      product.metal_color ??
+      product.metalColor ??
+      product.MetalColor ??
       ''
     );
 
@@ -286,10 +298,13 @@ const maxPrice = Number(
       !searchValue ||
       searchableText.includes(searchValue);
 
+    const categoryIsNumeric = /^\d+$/.test(categoryFilter);
+
     const matchesCategory =
       !categoryFilter ||
-      productCategory ===
-        normalizeFilter(categoryFilter);
+      (categoryIsNumeric
+        ? productCategoryId === String(categoryFilter)
+        : productCategory === normalizeFilter(categoryFilter));
 
     const matchesMaterial =
       !materialFilter ||
@@ -366,11 +381,11 @@ const maxPrice = Number(
             Our Products
           </h1>
 
-          {(selectedCategory || menuParam) && (
+          {(categoryParam || menuParam) && (
             <p className="mt-2 text-gray-600">
               Showing{' '}
-              {selectedCategory
-                ? formatLabel(selectedCategory)
+              {categoryParam
+                ? formatLabel(categoryParam)
                 : 'All Jewellery'}
 
               {menuParam &&
@@ -390,16 +405,14 @@ const maxPrice = Number(
             type="text"
             placeholder="Search products..."
             value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
+            onChange={handleSearchChange}
             className="px-4 py-2 border border-gray-300 rounded-lg flex-1 max-w-md"
           />
 
           <select
             value={
-              /^\d+$/.test(selectedCategory)
-                ? selectedCategory
+              /^\d+$/.test(categoryParam)
+                ? categoryParam
                 : ''
             }
             onChange={handleCategoryChange}
@@ -431,9 +444,7 @@ const maxPrice = Number(
             })}
           </select>
 
-          {(selectedCategory ||
-            menuParam ||
-            search) && (
+          {hasActiveFilters && (
             <button
               type="button"
               onClick={handleClearFilters}
@@ -448,9 +459,9 @@ const maxPrice = Number(
           <div className="text-center bg-white rounded-xl py-16 shadow-sm">
             <p className="text-gray-500 text-lg">
               No products found
-              {selectedCategory
+              {categoryParam
                 ? ` for "${formatLabel(
-                    selectedCategory
+                    categoryParam
                   )}"`
                 : ''}
             </p>

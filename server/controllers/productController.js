@@ -20,6 +20,25 @@ async function ensureProductExtraColumns(pool) {
     BEGIN
       ALTER TABLE Products ADD HUIDHallmark NVARCHAR(100) NULL
     END
+
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Material')
+      ALTER TABLE Products ADD Material NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Style')
+      ALTER TABLE Products ADD Style NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Gender')
+      ALTER TABLE Products ADD Gender NVARCHAR(50) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Occasion')
+      ALTER TABLE Products ADD Occasion NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Collection')
+      ALTER TABLE Products ADD Collection NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'MetalColor')
+      ALTER TABLE Products ADD MetalColor NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'DiamondPrice')
+      ALTER TABLE Products ADD DiamondPrice DECIMAL(18,2) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'OtherCharges')
+      ALTER TABLE Products ADD OtherCharges DECIMAL(18,2) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'DiscountPercentage')
+      ALTER TABLE Products ADD DiscountPercentage DECIMAL(5,2) NULL
   `);
 }
 
@@ -63,12 +82,24 @@ exports.getProducts = async (req, res) => {
     if (category) {
       if (/^\d+$/.test(category)) {
         query += ` AND p.CategoryId = @categoryId`;
-        request.input('categoryId', sql.Int, category);
+        request.input('categoryId', sql.Int, Number.parseInt(category, 10));
       } else {
-        query += ` AND (LOWER(REPLACE(c.Name, ' ', '-')) = @categoryName OR LOWER(c.Name) = @categoryNameRaw OR c.Slug = @categoryNameSlug)`;
-        request.input('categoryName', sql.NVarChar, category.toLowerCase());
-        request.input('categoryNameRaw', sql.NVarChar, category.toLowerCase());
-        request.input('categoryNameSlug', sql.NVarChar, category.toLowerCase());
+        const normalizedCategory = String(category)
+          .trim()
+          .toLowerCase()
+          .replace(/&/g, 'and')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        const singularCategory = normalizedCategory.endsWith('s')
+          ? normalizedCategory.slice(0, -1)
+          : normalizedCategory;
+
+        query += ` AND (
+          LOWER(REPLACE(REPLACE(c.Name, '&', 'and'), ' ', '-')) = @categoryName
+          OR LOWER(REPLACE(REPLACE(c.Name, '&', 'and'), ' ', '-')) = @categorySingular
+        )`;
+        request.input('categoryName', sql.NVarChar, normalizedCategory);
+        request.input('categorySingular', sql.NVarChar, singularCategory);
       }
     }
     query += ` ORDER BY p.CreatedAt DESC`;
@@ -114,7 +145,7 @@ exports.getProduct = async (req, res) => {
         FROM dbo.Products AS p
         LEFT JOIN dbo.Categories AS c
           ON c.Id = p.CategoryId
-        WHERE p.IsAvailable = 1
+        WHERE p.Id = @id AND p.IsAvailable = 1
       `);
     
     if (result.recordset.length === 0) {

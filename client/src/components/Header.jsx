@@ -11,40 +11,10 @@ const Header = () => {
   const { cartCount } = useCart();
   const { goldRate18k, goldRate22k, goldRate24k, silverRate } = useGoldRate();
   const navigate = useNavigate();
-  const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [goldRateMenuOpen, setGoldRateMenuOpen] = useState(false);
-
-  const categories = {
-    'All Jewellery': {
-      categories: ['All Jewellery', 'Gold', 'Diamond', 'Rings', 'Earrings', 'Wedding Jewellery', 'Jewellery Purchase Plan', 'Gifting'],
-      gender: ['Women', 'Men', 'Kids', 'Unisex'],
-      price: ['< 5000', '5K - 10K', '10K - 20K', '20K - 30K', '30K - 40K', '40K - 50K', '> 50K']
-    },
-    'Gold': {
-      categories: ['Earring', 'Pendant', 'Finger Ring', 'Other Categories', 'Gold Coin'],
-      earring: ['Jhumka', 'Stud', 'Hanging', 'Others'],
-      pendant: ['Daily Wear', 'Party', 'Work Wear', 'Traditional'],
-      fingerRing: ['Engagement Rings', 'Party', 'Work Wear', 'Daily Wear']
-    },
-    'Diamond': {
-      categories: ['Earring', 'Pendant', 'Finger Ring', 'Other Categories', 'Metal Color'],
-      earring: ['Stud', 'Hanging', 'Jhumka'],
-      pendant: ['Daily Wear', 'Party', 'Traditional'],
-      fingerRing: ['Engagement Rings', 'Solitaires', 'Casual'],
-      metalColor: ['Yellow Gold', 'Rose Gold', 'Two Tone']
-    },
-    'Rings': {
-      gold: ['Engagement Rings', 'Party', 'Work Wear', 'Daily Wear'],
-      diamond: ['Engagement Rings', 'Solitaires', 'Casual']
-    },
-    'Earrings': {
-      gold: ['Jhumka', 'Stud', 'Hanging', 'Others'],
-      diamond: ['Stud', 'Hanging', 'Jhumka']
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -186,154 +156,10 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Navigation Bar */}
-      <nav className="hidden md:block border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-8 h-14">
-            {Object.keys(categories).map((item) => (
-              <div
-                key={item}
-                className="relative group"
-                onMouseEnter={() => setActiveMegaMenu(item)}
-                onMouseLeave={() => setActiveMegaMenu(null)}
-              >
-                <Link 
-                  to={item === 'All Jewellery' ? '/products' : '/categories'}
-                  className="text-gray-800 font-medium hover:text-gold transition flex items-center gap-1 py-4"
-                >
-                  {item}
-                  <ChevronDown size={16} />
-                </Link>
-                {/* Mega Menu */}
-                {activeMegaMenu === item && (
-                  <div className="absolute top-full left-0 w-[800px] bg-white shadow-2xl border-t-4 border-gold p-8 z-50">
-                    <div className="grid grid-cols-4 gap-8">
-                      {categories[item].categories && (
-                        <div>
-                          <h4 className="font-bold text-gray-800 mb-4">CATEGORIES</h4>
-                          <ul className="space-y-2">
-                            {categories[item].categories.map((cat) => (
-                              <li key={cat}>
-                                <Link to="/products" className="text-gray-600 hover:text-gold transition">{cat}</Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {categories[item].gender && (
-                        <div>
-                          <h4 className="font-bold text-gray-800 mb-4">GENDER</h4>
-                          <ul className="space-y-2">
-                            {categories[item].gender.map((g) => (
-                              <li key={g}>
-                                <Link to="/products" className="text-gray-600 hover:text-gold transition">{g}</Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {categories[item].price && (
-                        <div>
-                          <h4 className="font-bold text-gray-800 mb-4">PRICE</h4>
-                          <ul className="space-y-2">
-                            {categories[item].price.map((p) => (
-                              <li key={p}>
-                                <Link to="/products" className="text-gray-600 hover:text-gold transition">{p}</Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {categories[item].earring && (
-                        <>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">EARRING</h4>
-                            <ul className="space-y-2">
-                              {categories[item].earring.map((e) => (
-                                <li key={e}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{e}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">PENDANT</h4>
-                            <ul className="space-y-2">
-                              {categories[item].pendant.map((p) => (
-                                <li key={p}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{p}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">FINGER RING</h4>
-                            <ul className="space-y-2">
-                              {categories[item].fingerRing.map((fr) => (
-                                <li key={fr}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{fr}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </>
-                      )}
-                      {categories[item].gold && (
-                        <>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">GOLD</h4>
-                            <ul className="space-y-2">
-                              {categories[item].gold.map((g) => (
-                                <li key={g}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{g}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">DIAMOND</h4>
-                            <ul className="space-y-2">
-                              {categories[item].diamond.map((d) => (
-                                <li key={d}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{d}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </>
-                      )}
-                      {categories[item].metalColor && (
-                        <>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">OTHER CATEGORIES</h4>
-                            <ul className="space-y-2">
-                              {['Mangalsutra', 'Necklace', 'Nose Pin', 'Neckwear Set', 'Bangle', 'Bracelet', 'Pendant And Earring Set', 'Maang Tikka'].map((oc) => (
-                                <li key={oc}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{oc}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-4">METAL COLOR</h4>
-                            <ul className="space-y-2">
-                              {categories[item].metalColor.map((mc) => (
-                                <li key={mc}>
-                                  <Link to="/products" className="text-gray-600 hover:text-gold transition">{mc}</Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </nav>
+      {/* Desktop category navigation */}
+      <div className="hidden md:block border-b border-gray-200">
+        <MegaMenu />
+      </div>
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
@@ -349,14 +175,20 @@ const Header = () => {
               />
             </form>
             <nav className="space-y-4">
-              {Object.keys(categories).map((item) => (
+              {[
+                { label: 'All Jewellery', to: '/products' },
+                { label: 'Gold', to: '/products?material=Gold' },
+                { label: 'Diamond', to: '/products?material=Diamond' },
+                { label: 'Rings', to: '/products?category=Rings' },
+                { label: 'Earrings', to: '/products?category=Earrings' },
+              ].map((item) => (
                 <Link
-                  key={item}
-                  to="/products"
+                  key={item.label}
+                  to={item.to}
                   className="block py-2 text-gray-800 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {item}
+                  {item.label}
                 </Link>
               ))}
             </nav>

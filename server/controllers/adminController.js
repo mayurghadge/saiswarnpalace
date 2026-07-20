@@ -78,7 +78,59 @@ async function ensureProductExtraColumns(pool) {
     BEGIN
       ALTER TABLE Products ADD HUIDHallmark NVARCHAR(100) NULL
     END
+
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Material')
+      ALTER TABLE Products ADD Material NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Style')
+      ALTER TABLE Products ADD Style NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Gender')
+      ALTER TABLE Products ADD Gender NVARCHAR(50) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Occasion')
+      ALTER TABLE Products ADD Occasion NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'Collection')
+      ALTER TABLE Products ADD Collection NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'MetalColor')
+      ALTER TABLE Products ADD MetalColor NVARCHAR(100) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'DiamondPrice')
+      ALTER TABLE Products ADD DiamondPrice DECIMAL(18,2) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'OtherCharges')
+      ALTER TABLE Products ADD OtherCharges DECIMAL(18,2) NULL
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('Products') AND name = 'DiscountPercentage')
+      ALTER TABLE Products ADD DiscountPercentage DECIMAL(5,2) NULL
   `);
+}
+
+async function resolveCategoryId(pool, categoryValue) {
+  if (categoryValue === '' || categoryValue === null || categoryValue === undefined) return null;
+
+  const value = String(categoryValue).trim();
+  const request = pool.request();
+  let result;
+
+  if (/^\d+$/.test(value)) {
+    result = await request
+      .input('categoryId', sql.Int, Number.parseInt(value, 10))
+      .query('SELECT Id FROM Categories WHERE Id = @categoryId');
+  } else {
+    const normalized = value.toLowerCase().replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const singular = normalized.endsWith('s') ? normalized.slice(0, -1) : normalized;
+    result = await request
+      .input('categoryName', sql.NVarChar, normalized)
+      .input('categorySingular', sql.NVarChar, singular)
+      .query(`
+        SELECT TOP 1 Id FROM Categories
+        WHERE LOWER(REPLACE(REPLACE(Name, '&', 'and'), ' ', '-')) = @categoryName
+           OR LOWER(REPLACE(REPLACE(Name, '&', 'and'), ' ', '-')) = @categorySingular
+      `);
+  }
+
+  if (!result.recordset.length) {
+    const error = new Error(`Category "${value}" was not found`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return result.recordset[0].Id;
 }
 
 const normalizeCouponCode = (code = '') => String(code).trim().toUpperCase();
@@ -235,20 +287,7 @@ exports.createProduct = async (req, res) => {
     const pool = await connectDB();
     await ensureProductExtraColumns(pool);
 
-    // Resolve CategoryId safely
-    let finalCategoryId = null;
-    if (category_id) {
-      if (/^\d+$/.test(String(category_id))) {
-        finalCategoryId = parseInt(category_id, 10);
-      } else {
-        const catResult = await pool.request()
-          .input('catName', sql.NVarChar, String(category_id).trim())
-          .query('SELECT Id FROM Categories WHERE Name = @catName OR Slug = LOWER(REPLACE(@catName, \' \', \'-\'))');
-        if (catResult.recordset.length > 0) {
-          finalCategoryId = catResult.recordset[0].Id;
-        }
-      }
-    }
+    const finalCategoryId = await resolveCategoryId(pool, category_id);
 
     let isAvailable = 1;
     if (is_active !== undefined) {
@@ -296,7 +335,7 @@ exports.createProduct = async (req, res) => {
     res.status(201).json({ message: 'Product created successfully', product: result.recordset[0] });
   } catch (error) {
     console.error('Create Product Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -325,20 +364,7 @@ exports.updateProduct = async (req, res) => {
     const pool = await connectDB();
     await ensureProductExtraColumns(pool);
 
-    // Resolve CategoryId safely
-    let finalCategoryId = null;
-    if (category_id) {
-      if (/^\d+$/.test(String(category_id))) {
-        finalCategoryId = parseInt(category_id, 10);
-      } else {
-        const catResult = await pool.request()
-          .input('catName', sql.NVarChar, String(category_id).trim())
-          .query('SELECT Id FROM Categories WHERE Name = @catName OR Slug = LOWER(REPLACE(@catName, \' \', \'-\'))');
-        if (catResult.recordset.length > 0) {
-          finalCategoryId = catResult.recordset[0].Id;
-        }
-      }
-    }
+    const finalCategoryId = await resolveCategoryId(pool, category_id);
 
     let isAvailable = 1;
     if (is_active !== undefined) {
@@ -400,7 +426,7 @@ exports.updateProduct = async (req, res) => {
     res.status(200).json({ message: 'Product updated successfully' });
   } catch (error) {
     console.error('Update Product Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message || 'Server error' });
   }
 };
 
