@@ -216,7 +216,8 @@ exports.createProduct = async (req, res) => {
     const {
       name, description, price, discount_price, category_id, material, weight,
       purity, making_charges, wastage_percentage, diamond_price, stock, is_featured,
-      item_code, huid_hallmark
+      item_code, huid_hallmark, style, gender, occasion, collection, metal_color, metalColor,
+      fixed_making_charge, fixedMakingCharge, other_charges, otherCharges, discount_percentage, discountPercentage, is_active
     } = req.body;
     let imagesPath = req.body.images || '';
     
@@ -233,26 +234,62 @@ exports.createProduct = async (req, res) => {
     
     const pool = await connectDB();
     await ensureProductExtraColumns(pool);
+
+    // Resolve CategoryId safely
+    let finalCategoryId = null;
+    if (category_id) {
+      if (/^\d+$/.test(String(category_id))) {
+        finalCategoryId = parseInt(category_id, 10);
+      } else {
+        const catResult = await pool.request()
+          .input('catName', sql.NVarChar, String(category_id).trim())
+          .query('SELECT Id FROM Categories WHERE Name = @catName OR Slug = LOWER(REPLACE(@catName, \' \', \'-\'))');
+        if (catResult.recordset.length > 0) {
+          finalCategoryId = catResult.recordset[0].Id;
+        }
+      }
+    }
+
+    let isAvailable = 1;
+    if (is_active !== undefined) {
+      isAvailable = (is_active === 'true' || is_active === true || is_active === '1' || is_active === 1) ? 1 : 0;
+    } else if (stock !== undefined) {
+      isAvailable = Number(stock) > 0 ? 1 : 0;
+    }
     
     const result = await pool.request()
       .input('name', sql.NVarChar, name)
       .input('description', sql.NVarChar, description || '')
-      .input('categoryId', sql.Int, category_id || null)
+      .input('categoryId', sql.Int, finalCategoryId)
       .input('weight', sql.Decimal(10,2), weight || 0)
       .input('purity', sql.NVarChar, purity || '')
-      .input('wastagePercentage', sql.Decimal(5,2), wastage_percentage || 10)
+      .input('wastagePercentage', sql.Decimal(5,2), wastage_percentage || 0)
       .input('makingCharges', sql.Decimal(18,2), making_charges || 0)
+      .input('fixedMakingCharge', sql.Decimal(18,2), fixed_making_charge || fixedMakingCharge || 0)
       .input('itemCode', sql.NVarChar, item_code || null)
       .input('huidHallmark', sql.NVarChar, huid_hallmark || null)
       .input('imageUrl', sql.NVarChar, imagesPath)
-      .input('isAvailable', sql.Bit, stock > 0 ? 1 : 0)
+      .input('isAvailable', sql.Bit, isAvailable)
+      .input('material', sql.NVarChar, material || null)
+      .input('style', sql.NVarChar, style || null)
+      .input('gender', sql.NVarChar, gender || null)
+      .input('occasion', sql.NVarChar, occasion || null)
+      .input('collection', sql.NVarChar, collection || null)
+      .input('metalColor', sql.NVarChar, metal_color || metalColor || null)
+      .input('diamondPrice', sql.Decimal(18,2), diamond_price || 0)
+      .input('otherCharges', sql.Decimal(18,2), other_charges || otherCharges || 0)
+      .input('discountPercentage', sql.Decimal(5,2), discount_percentage || discountPercentage || 0)
       .query(`
         INSERT INTO Products (
-          Name, Description, CategoryId, Weight, Purity, WastagePercentage, MakingChargesPerGram, ItemCode, HUIDHallmark, ImageURL, IsAvailable
+          Name, Description, CategoryId, Weight, Purity, WastagePercentage, MakingChargesPerGram, 
+          FixedMakingCharge, ItemCode, HUIDHallmark, ImageURL, IsAvailable,
+          Material, Style, Gender, Occasion, Collection, MetalColor, DiamondPrice, OtherCharges, DiscountPercentage
         )
         OUTPUT inserted.*
         VALUES (
-          @name, @description, @categoryId, @weight, @purity, @wastagePercentage, @makingCharges, @itemCode, @huidHallmark, @imageUrl, @isAvailable
+          @name, @description, @categoryId, @weight, @purity, @wastagePercentage, @makingCharges, 
+          @fixedMakingCharge, @itemCode, @huidHallmark, @imageUrl, @isAvailable,
+          @material, @style, @gender, @occasion, @collection, @metalColor, @diamondPrice, @otherCharges, @discountPercentage
         )
       `);
     
@@ -269,7 +306,8 @@ exports.updateProduct = async (req, res) => {
     const {
       name, description, price, discount_price, category_id, material, weight,
       purity, making_charges, wastage_percentage, diamond_price, stock, is_featured, is_active,
-      item_code, huid_hallmark
+      item_code, huid_hallmark, style, gender, occasion, collection, metal_color, metalColor,
+      fixed_making_charge, fixedMakingCharge, other_charges, otherCharges, discount_percentage, discountPercentage
     } = req.body;
     let imagesPath = req.body.images || '';
     
@@ -286,20 +324,52 @@ exports.updateProduct = async (req, res) => {
     
     const pool = await connectDB();
     await ensureProductExtraColumns(pool);
+
+    // Resolve CategoryId safely
+    let finalCategoryId = null;
+    if (category_id) {
+      if (/^\d+$/.test(String(category_id))) {
+        finalCategoryId = parseInt(category_id, 10);
+      } else {
+        const catResult = await pool.request()
+          .input('catName', sql.NVarChar, String(category_id).trim())
+          .query('SELECT Id FROM Categories WHERE Name = @catName OR Slug = LOWER(REPLACE(@catName, \' \', \'-\'))');
+        if (catResult.recordset.length > 0) {
+          finalCategoryId = catResult.recordset[0].Id;
+        }
+      }
+    }
+
+    let isAvailable = 1;
+    if (is_active !== undefined) {
+      isAvailable = (is_active === 'true' || is_active === true || is_active === '1' || is_active === 1) ? 1 : 0;
+    } else if (stock !== undefined) {
+      isAvailable = Number(stock) > 0 ? 1 : 0;
+    }
     
     await pool.request()
       .input('id', sql.Int, id)
       .input('name', sql.NVarChar, name)
       .input('description', sql.NVarChar, description || '')
-      .input('categoryId', sql.Int, category_id || null)
+      .input('categoryId', sql.Int, finalCategoryId)
       .input('weight', sql.Decimal(10,2), weight || 0)
       .input('purity', sql.NVarChar, purity || '')
-      .input('wastagePercentage', sql.Decimal(5,2), wastage_percentage || 10)
+      .input('wastagePercentage', sql.Decimal(5,2), wastage_percentage || 0)
       .input('makingCharges', sql.Decimal(18,2), making_charges || 0)
+      .input('fixedMakingCharge', sql.Decimal(18,2), fixed_making_charge || fixedMakingCharge || 0)
       .input('itemCode', sql.NVarChar, item_code || null)
       .input('huidHallmark', sql.NVarChar, huid_hallmark || null)
       .input('imageUrl', sql.NVarChar, imagesPath)
-      .input('isAvailable', sql.Bit, stock > 0 ? 1 : 0)
+      .input('isAvailable', sql.Bit, isAvailable)
+      .input('material', sql.NVarChar, material || null)
+      .input('style', sql.NVarChar, style || null)
+      .input('gender', sql.NVarChar, gender || null)
+      .input('occasion', sql.NVarChar, occasion || null)
+      .input('collection', sql.NVarChar, collection || null)
+      .input('metalColor', sql.NVarChar, metal_color || metalColor || null)
+      .input('diamondPrice', sql.Decimal(18,2), diamond_price || 0)
+      .input('otherCharges', sql.Decimal(18,2), other_charges || otherCharges || 0)
+      .input('discountPercentage', sql.Decimal(5,2), discount_percentage || discountPercentage || 0)
       .query(`
         UPDATE Products 
         SET Name = @name,
@@ -309,11 +379,21 @@ exports.updateProduct = async (req, res) => {
             Purity = @purity,
             WastagePercentage = @wastagePercentage,
             MakingChargesPerGram = @makingCharges,
+            FixedMakingCharge = @fixedMakingCharge,
             ItemCode = @itemCode,
             HUIDHallmark = @huidHallmark,
             ImageURL = @imageUrl,
             IsAvailable = @isAvailable,
-            CreatedAt = GETDATE()
+            Material = @material,
+            Style = @style,
+            Gender = @gender,
+            Occasion = @occasion,
+            Collection = @collection,
+            MetalColor = @metalColor,
+            DiamondPrice = @diamondPrice,
+            OtherCharges = @otherCharges,
+            DiscountPercentage = @discountPercentage,
+            UpdatedAt = GETDATE()
         WHERE Id = @id
       `);
     
@@ -700,6 +780,15 @@ exports.getAdminProducts = async (req, res) => {
         p.IsAvailable AS is_active,
         p.ImageURL AS images,
         p.CreatedAt AS created_at,
+        p.Material AS material,
+        p.Style AS style,
+        p.Gender AS gender,
+        p.Occasion AS occasion,
+        p.Collection AS collection,
+        p.MetalColor AS metal_color,
+        p.DiamondPrice AS diamond_price,
+        p.OtherCharges AS other_charges,
+        p.DiscountPercentage AS discount_percentage,
         c.Name AS category_name
       FROM Products p
       LEFT JOIN Categories c ON p.CategoryId = c.Id

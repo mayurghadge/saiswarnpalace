@@ -17,6 +17,8 @@ const normalizeValue = (value = '') =>
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+  
+const normalizeFilter = normalizeValue;
 
 const formatLabel = (value = '') =>
   String(value)
@@ -101,6 +103,7 @@ const maxPrice = Number(
     return url;
   };
 
+
   const fetchProducts = async () => {
     setLoading(true);
 
@@ -131,7 +134,6 @@ const maxPrice = Number(
       }
 
       const data = await response.json();
-
       if (Array.isArray(data)) {
         setProducts(data);
       } else {

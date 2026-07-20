@@ -45,6 +45,15 @@ exports.getProducts = async (req, res) => {
         p.IsAvailable AS is_active,
         p.ImageURL AS images,
         p.CreatedAt AS created_at,
+        p.Material AS material,
+        p.Style AS style,
+        p.Gender AS gender,
+        p.Occasion AS occasion,
+        p.Collection AS collection,
+        p.MetalColor AS metal_color,
+        p.DiamondPrice AS diamond_price,
+        p.OtherCharges AS other_charges,
+        p.DiscountPercentage AS discount_percentage,
         c.Name AS category_name
       FROM Products p
       LEFT JOIN Categories c ON p.CategoryId = c.Id
@@ -52,8 +61,15 @@ exports.getProducts = async (req, res) => {
     `;
     const request = pool.request();
     if (category) {
-      query += ` AND p.CategoryId = @categoryId`;
-      request.input('categoryId', sql.Int, category);
+      if (/^\d+$/.test(category)) {
+        query += ` AND p.CategoryId = @categoryId`;
+        request.input('categoryId', sql.Int, category);
+      } else {
+        query += ` AND (LOWER(REPLACE(c.Name, ' ', '-')) = @categoryName OR LOWER(c.Name) = @categoryNameRaw OR c.Slug = @categoryNameSlug)`;
+        request.input('categoryName', sql.NVarChar, category.toLowerCase());
+        request.input('categoryNameRaw', sql.NVarChar, category.toLowerCase());
+        request.input('categoryNameSlug', sql.NVarChar, category.toLowerCase());
+      }
     }
     query += ` ORDER BY p.CreatedAt DESC`;
     const result = await request.query(query);
