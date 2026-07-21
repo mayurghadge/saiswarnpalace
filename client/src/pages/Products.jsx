@@ -588,10 +588,11 @@ const Products = () => {
                         </span>
 
                         <span>
-                          Metal Value: ₹
-                          {Math.round(
-                            estimate.metalValue || 0
-                          ).toLocaleString()}
+                          Total Weight Value:{' '}
+                          {Number(estimate.weight || 0).toLocaleString('en-IN', {
+                            maximumFractionDigits: 3,
+                          })}
+                          g
                         </span>
                       </div>
                     </div>
