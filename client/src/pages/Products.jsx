@@ -588,7 +588,7 @@ const Products = () => {
                         </span>
 
                         <span>
-                          Total Weight Value:{' '}
+                          Total Weight :{' '}
                           {Number(estimate.weight || 0).toLocaleString('en-IN', {
                             maximumFractionDigits: 3,
                           })}
