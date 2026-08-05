@@ -198,7 +198,9 @@ The database includes the following tables:
 
 **Demo Login (if no admin in database):**
 - Email: `admin@saiswarnpalace`
-- Password: `Ssp@277369`
+- Password: configure a strong admin password in `server/.env` (DO NOT commit real secrets)
+
+Note: If you found real credentials in this repository, rotate them immediately and remove any copies. See `server/.env.example` for required variables.
 
 ## Project Structure
 

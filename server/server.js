@@ -1,12 +1,116 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const dotenvSafe = require('dotenv-safe');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const morgan = require('morgan');
+const Sentry = require('@sentry/node');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const { generateCsrfToken, requireCsrf } = require('./middleware/csrf');
 
-dotenv.config();
+dotenvSafe.config({
+  allowEmptyValues: true,
+  example: path.join(__dirname, '.env.example')
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Trust the first proxy when running behind a proxy (Vercel, nginx, etc.)
+// so secure cookies and rate-limiter work correctly.
+app.set('trust proxy', 1);
+
+// Basic environment sanity checks
+if (
+  !process.env.JWT_SECRET ||
+  process.env.JWT_SECRET === 'your-secret-key'
+) {
+  const msg =
+    'WARNING: JWT_SECRET is not set or uses an insecure default. ' +
+    'Set a strong JWT_SECRET in your environment (do not commit it).';
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(msg);
+  } else {
+    console.warn(msg);
+  }
+}
+
+// Security middlewares
+app.use(helmet());
+
+// Enforce HSTS in production (365 days)
+if (process.env.NODE_ENV === 'production') {
+  app.use(
+    helmet.hsts({
+      maxAge: 60 * 60 * 24 * 365,
+      includeSubDomains: true,
+      preload: true
+    })
+  );
+
+  // Redirect HTTP to HTTPS when behind a proxy
+  app.use((req, res, next) => {
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+      return next();
+    }
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  });
+}
+
+// Apply a reasonable global rate limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // limit each IP to 300 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use(globalLimiter);
+
+// Cookie parser for refresh-token endpoints
+app.use(cookieParser());
+
+// Optional Sentry monitoring if configured
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development'
+  });
+  app.use(Sentry.Handlers.requestHandler());
+}
+
+// Request logging
+// Sanitize remote-user to avoid log forging issues
+morgan.token('remote-user', () => '-');
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// Lightweight double-submit CSRF token implementation to avoid transitive
+// vulnerable dependencies. Frontend should fetch this token and include it
+// in `X-CSRF-Token` header for state-changing requests.
+app.get('/api/csrf-token', (req, res) => {
+  const token = generateCsrfToken();
+  res.cookie('XSRF-TOKEN', token, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+    maxAge: 1000 * 60 * 60 // 1 hour
+  });
+  res.json({ csrfToken: token });
+});
+
+// Stricter limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8, // fewer attempts for login endpoints
+  message: {
+    message:
+      'Too many login attempts from this IP, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Controllers
 const productController = require(
@@ -21,13 +125,11 @@ const couponController = require(
   './controllers/couponController'
 );
 
-const adminController = require(
-  './controllers/adminController'
-);
-
 const userController = require(
   './controllers/userController'
 );
+
+const { registerValidation, loginValidation, verifyOtpValidation, runValidation } = require('./middleware/validators');
 
 const cartController = require(
   './controllers/cartController'
@@ -47,12 +149,12 @@ const authMiddleware = require(
   './middleware/auth'
 );
 
+const originValidation = require('./middleware/originValidation');
 const upload = require(
   './config/upload'
 );
 
-const requireAdmin =
-  authMiddleware.requireAdmin;
+const adminRoutes = require('./routes/adminRoutes');
 
 // --------------------------------------------------
 // CORS
@@ -97,7 +199,9 @@ app.use(
 
     allowedHeaders: [
       'Content-Type',
-      'Authorization'
+      'Authorization',
+      'X-CSRF-Token',
+      'X-XSRF-Token'
     ]
   })
 );
@@ -150,36 +254,45 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Test database connection when server starts
-(async () => {
-  try {
-    const {
-      connectDB,
-      isDbUnavailableError
-    } = require('./config/db');
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    try {
+      const {
+        connectDB,
+        isDbUnavailableError
+      } = require('./config/db');
 
-    await connectDB();
+      await connectDB();
 
-    dbConnected = true;
+      dbConnected = true;
 
-    console.log('✅ SQL Server connected');
-  } catch (error) {
-    dbConnected = false;
+      console.log('✅ SQL Server connected');
+      try {
+        const { scheduleRefreshTokenCleanup } = require('./utils/tokenCleanup');
+        scheduleRefreshTokenCleanup(connectDB);
+        console.log('🧹 Scheduled refresh token cleanup');
+      } catch (e) {
+        console.warn('Failed to schedule refresh token cleanup', e.message || e);
+      }
+    } catch (error) {
+      dbConnected = false;
 
-    const {
-      isDbUnavailableError
-    } = require('./config/db');
+      const {
+        isDbUnavailableError
+      } = require('./config/db');
 
-    const detail = isDbUnavailableError(error)
-      ? 'Azure SQL firewall or connectivity is blocking the connection.'
-      : 'Database connection failed during server startup.';
+      const detail = isDbUnavailableError(error)
+        ? 'Azure SQL firewall or connectivity is blocking the connection.'
+        : 'Database connection failed during server startup.';
 
-    console.warn(
-      '⚠️ SQL Server not connected, but server will still run'
-    );
+      console.warn(
+        '⚠️ SQL Server not connected, but server will still run'
+      );
 
-    console.warn(detail);
-  }
-})();
+      console.warn(detail);
+    }
+  })();
+}
 
 // --------------------------------------------------
 // PUBLIC PRODUCT ROUTES
@@ -229,20 +342,15 @@ app.get(
 // PUBLIC USER ROUTES
 // --------------------------------------------------
 
-app.post(
-  '/api/users/register',
-  userController.register
-);
+app.post('/api/users/register', registerValidation, runValidation, userController.register);
 
-app.post(
-  '/api/users/login',
-  userController.login
-);
+app.post('/api/users/login', authLimiter, loginValidation, runValidation, userController.login);
 
-app.post(
-  '/api/users/verify-otp',
-  userController.verifyOTP
-);
+app.post('/api/users/verify-otp', verifyOtpValidation, runValidation, userController.verifyOTP);
+
+// Refresh token and logout endpoints
+app.post('/api/users/refresh-token', originValidation, requireCsrf, userController.refreshToken);
+app.post('/api/users/logout', originValidation, requireCsrf, userController.logout);
 
 // --------------------------------------------------
 // COUPON ROUTES
@@ -278,21 +386,25 @@ app.get(
 
 app.post(
   '/api/cart',
+  requireCsrf,
   cartController.addToCart
 );
 
 app.put(
   '/api/cart/:id',
+  requireCsrf,
   cartController.updateCartItem
 );
 
 app.delete(
   '/api/cart/:id',
+  requireCsrf,
   cartController.removeFromCart
 );
 
 app.delete(
   '/api/cart',
+  requireCsrf,
   cartController.clearCart
 );
 
@@ -312,196 +424,21 @@ app.get(
 
 app.post(
   '/api/wishlist',
+  requireCsrf,
   wishlistController.addToWishlist
 );
 
 app.delete(
   '/api/wishlist/:productId',
+  requireCsrf,
   wishlistController.removeFromWishlist
 );
 
 // --------------------------------------------------
-// ADMIN LOGIN
-// This must remain before protected admin middleware
+// ADMIN ROUTES
 // --------------------------------------------------
 
-app.post(
-  '/api/admin/login',
-  adminController.adminLogin
-);
-
-// --------------------------------------------------
-// PROTECT EVERY ADMIN ROUTE BELOW THIS LINE
-// --------------------------------------------------
-
-app.use(
-  '/api/admin',
-  authMiddleware,
-  requireAdmin
-);
-
-// --------------------------------------------------
-// ADMIN DASHBOARD
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/dashboard',
-  adminController.getDashboardStats
-);
-
-app.get(
-  '/api/admin/reports',
-  adminController.getReports
-);
-
-// --------------------------------------------------
-// ADMIN CATEGORIES
-// Uses the new categoryController
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/categories',
-  categoryController.getAdminCategories
-);
-
-app.post(
-  '/api/admin/categories',
-  upload.single('category_image'),
-  categoryController.createCategory
-);
-
-app.put(
-  '/api/admin/categories/:id',
-  upload.single('category_image'),
-  categoryController.updateCategory
-);
-
-app.delete(
-  '/api/admin/categories/:id',
-  categoryController.deleteCategory
-);
-
-// --------------------------------------------------
-// ADMIN PRODUCTS
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/products',
-  adminController.getAdminProducts
-);
-
-app.post(
-  '/api/admin/products',
-  upload.single('product_image'),
-  adminController.createProduct
-);
-
-app.put(
-  '/api/admin/products/:id',
-  upload.single('product_image'),
-  adminController.updateProduct
-);
-
-app.delete(
-  '/api/admin/products/:id',
-  adminController.deleteProduct
-);
-
-// --------------------------------------------------
-// ADMIN COUPONS
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/coupons',
-  adminController.getCoupons
-);
-
-app.post(
-  '/api/admin/coupons',
-  adminController.createCoupon
-);
-
-app.put(
-  '/api/admin/coupons/:id',
-  adminController.updateCoupon
-);
-
-app.delete(
-  '/api/admin/coupons/:id',
-  adminController.deleteCoupon
-);
-
-// --------------------------------------------------
-// ADMIN USERS
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/users',
-  adminController.getUsers
-);
-
-app.delete(
-  '/api/admin/users/:id',
-  adminController.deleteUser
-);
-
-app.get(
-  '/api/admin/users/:id/proofs',
-  adminController.getUserProofs
-);
-
-app.put(
-  '/api/admin/users/:id/proofs/:proofId/approve',
-  adminController.approveProof
-);
-
-app.put(
-  '/api/admin/users/:id/proofs/:proofId/reject',
-  adminController.rejectProof
-);
-
-// --------------------------------------------------
-// ADMIN ORDERS
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/orders',
-  adminController.getOrders
-);
-
-app.get(
-  '/api/admin/orders/:id',
-  adminController.getOrder
-);
-
-app.put(
-  '/api/admin/orders/:id/status',
-  adminController.updateOrderStatus
-);
-
-// --------------------------------------------------
-// ADMIN CONTACTS
-// --------------------------------------------------
-
-app.get(
-  '/api/admin/contacts',
-  adminController.getContacts
-);
-
-app.put(
-  '/api/admin/contacts/:id/status',
-  adminController.updateContactStatus
-);
-
-// --------------------------------------------------
-// ADMIN GOLD RATES
-// --------------------------------------------------
-
-app.put(
-  '/api/admin/gold-rates',
-  adminController.updateGoldRates
-);
-
+app.use('/api/admin', adminRoutes);
 // --------------------------------------------------
 // ROOT ROUTE
 // --------------------------------------------------
@@ -515,6 +452,10 @@ app.get('/', (req, res) => {
 // --------------------------------------------------
 // ERROR HANDLER
 // --------------------------------------------------
+
+if (process.env.SENTRY_DSN) {
+  app.use(Sentry.Handlers.errorHandler());
+}
 
 app.use((error, req, res, next) => {
   console.error('API Error:', error);

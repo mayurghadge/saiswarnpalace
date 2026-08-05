@@ -2,8 +2,15 @@ const { connectDB, sql } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '15m';
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET must be set in production');
+}
 
 // Demo OTP store for local development since Users table has no OTP columns.
 const otpStore = new Map();
@@ -56,6 +63,58 @@ async function ensureVerificationDocumentsTable(pool) {
   `);
 }
 
+async function ensureRefreshTokensTable(pool) {
+  await pool.request().query(`
+    IF OBJECT_ID('RefreshTokens', 'U') IS NULL
+    BEGIN
+      CREATE TABLE RefreshTokens (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        token_id NVARCHAR(100) NOT NULL,
+        token_hash NVARCHAR(500) NOT NULL,
+        user_id INT NOT NULL,
+        expires_at DATETIME NOT NULL,
+        revoked BIT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT GETDATE(),
+        ip_address NVARCHAR(100) NULL,
+        user_agent NVARCHAR(300) NULL
+      )
+    END
+  `);
+}
+
+const REFRESH_TOKEN_DAYS = 30;
+
+async function createRefreshTokenRow(pool, userId, req) {
+  const tokenId = uuidv4();
+  const tokenValue = crypto.randomBytes(64).toString('hex');
+  const tokenHash = await bcrypt.hash(tokenValue, 10);
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+
+  await pool.request()
+    .input('tokenId', sql.NVarChar, tokenId)
+    .input('tokenHash', sql.NVarChar, tokenHash)
+    .input('userId', sql.Int, userId)
+    .input('expiresAt', sql.DateTime, expiresAt)
+    .input('ip', sql.NVarChar, req.ip || null)
+    .input('ua', sql.NVarChar, req.get('User-Agent') || null)
+    .query(`
+      INSERT INTO RefreshTokens (token_id, token_hash, user_id, expires_at, ip_address, user_agent)
+      VALUES (@tokenId, @tokenHash, @userId, @expiresAt, @ip, @ua)
+    `);
+
+  return `${tokenId}:${tokenValue}`;
+}
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+    path: '/',
+    maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000
+  };
+}
+
 // Register a new user
 exports.register = async (req, res) => {
   try {
@@ -99,16 +158,14 @@ exports.register = async (req, res) => {
     
     const user = result.recordset[0];
     
-    // Store OTP in-memory for demo mode.
+    // Store OTP in-memory for demo mode (do NOT expose OTP in responses).
     otpStore.set(email.toLowerCase(), { otp, expiresAt: otpExpiry.getTime() });
 
-    // Log OTP for demo purposes
-    console.log(`🔐 OTP for ${email}: ${otp}`);
-    
+    console.log(`🔐 OTP generated for ${email} (demo only)`);
+
     res.status(201).json({
       message: 'User registered successfully. Please verify OTP.',
-      userId: user.id,
-      otp // In production, don't send OTP in response
+      userId: user.id
     });
     
   } catch (error) {
@@ -161,17 +218,17 @@ exports.verifyOTP = async (req, res) => {
     // Keep verification state in memory for this session.
     otpStore.delete(email.toLowerCase());
     
-    // Generate JWT token
-    const token = jwt.sign(
-{
-    id: user.id,
-    email: user.email,
-    role: 'user'
-},
-process.env.JWT_SECRET,
-{ expiresIn: '7d' }
-)
-    
+    // Generate JWT token (short-lived)
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET || 'dev-secret', { expiresIn: ACCESS_TOKEN_EXPIRES });
+    // Create refresh token row and set HttpOnly cookie
+    try {
+      await ensureRefreshTokensTable(pool);
+      const refreshCookie = await createRefreshTokenRow(pool, user.id, req);
+      res.cookie('refreshToken', refreshCookie, cookieOptions());
+    } catch (e) {
+      console.warn('Failed to create refresh token row', e.message || e);
+    }
+
     res.status(200).json({
       message: 'OTP verified successfully',
       token,
@@ -217,25 +274,6 @@ exports.login = async (req, res) => {
       `);
     
     if (result.recordset.length === 0) {
-      const fallbackEmail = 'admin@saiswarnpalace.com';
-      const fallbackPassword = 'Ssp@277369';
-      if (email === fallbackEmail && password === fallbackPassword) {
-        const token = jwt.sign(
-          { id: 1, email: fallbackEmail, role: 'user' },
-          process.env.JWT_SECRET || 'your-secret-key',
-          { expiresIn: '7d' }
-        );
-        return res.status(200).json({
-          message: 'Login successful',
-          token,
-          user: {
-            id: 1,
-            name: 'Admin',
-            email: fallbackEmail,
-            phone: ''
-          }
-        });
-      }
       return res.status(404).json({ message: 'User not found' });
     }
     
@@ -247,13 +285,17 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
-    
+    // Generate JWT token (short-lived)
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET || 'dev-secret', { expiresIn: ACCESS_TOKEN_EXPIRES });
+    // Create and set refresh token cookie
+    try {
+      await ensureRefreshTokensTable(pool);
+      const refreshCookie = await createRefreshTokenRow(pool, user.id, req);
+      res.cookie('refreshToken', refreshCookie, cookieOptions());
+    } catch (e) {
+      console.warn('Failed to create refresh token row', e.message || e);
+    }
+
     res.status(200).json({
       message: 'Login successful',
       token,
@@ -371,5 +413,85 @@ exports.submitVerificationProof = async (req, res) => {
   } catch (error) {
     console.error('Submit Proof Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Refresh access token using refresh token cookie
+exports.refreshToken = async (req, res) => {
+  try {
+    const cookie = req.cookies?.refreshToken;
+    if (!cookie) return res.status(401).json({ message: 'No refresh token' });
+
+    const [tokenId, tokenValue] = cookie.split(':');
+    if (!tokenId || !tokenValue) return res.status(401).json({ message: 'Invalid refresh token format' });
+
+    const pool = await connectDB();
+    await ensureRefreshTokensTable(pool);
+
+    const q = await pool.request()
+      .input('tokenId', sql.NVarChar, tokenId)
+      .query('SELECT TOP 1 * FROM RefreshTokens WHERE token_id = @tokenId AND revoked = 0');
+
+    if (q.recordset.length === 0) return res.status(401).json({ message: 'Refresh token not found' });
+
+    const row = q.recordset[0];
+    if (new Date(row.expires_at) < new Date()) return res.status(401).json({ message: 'Refresh token expired' });
+
+    const match = await bcrypt.compare(tokenValue, row.token_hash);
+    if (!match) return res.status(401).json({ message: 'Refresh token invalid' });
+
+    // Optional binding checks to reduce replay risk
+    const strictBinding = process.env.REFRESH_TOKEN_BINDING_STRICT === 'true';
+    if (strictBinding) {
+      const ipStored = (row.ip_address || '').toString();
+      const uaStored = (row.user_agent || '').toString();
+      const ipNow = (req.ip || '').toString();
+      const uaNow = (req.get('User-Agent') || '').toString();
+
+      if (ipStored && ipStored !== ipNow) {
+        return res.status(401).json({ message: 'Refresh token bound to a different IP' });
+      }
+
+      if (uaStored && uaStored !== '' && !uaNow.startsWith(uaStored.split(' ').slice(0,3).join(' '))) {
+        // Basic prefix check on UA to allow minor variations
+        return res.status(401).json({ message: 'Refresh token bound to a different client' });
+      }
+    }
+
+    // Token valid — rotate: revoke old token and create a new one
+    await pool.request().input('id', sql.Int, row.id).query('UPDATE RefreshTokens SET revoked = 1 WHERE id = @id');
+
+    const newCookie = await createRefreshTokenRow(pool, row.user_id, req);
+
+    // Issue new access token
+    const accessToken = jwt.sign({ id: row.user_id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.cookie('refreshToken', newCookie, cookieOptions());
+
+    return res.json({ token: accessToken });
+  } catch (error) {
+    console.error('Refresh Token Error:', error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Logout: revoke refresh token and clear cookie
+exports.logout = async (req, res) => {
+  try {
+    const cookie = req.cookies?.refreshToken;
+    if (cookie) {
+      const [tokenId] = cookie.split(':');
+      if (tokenId) {
+        const pool = await connectDB();
+        await ensureRefreshTokensTable(pool);
+        await pool.request().input('tokenId', sql.NVarChar, tokenId).query('UPDATE RefreshTokens SET revoked = 1 WHERE token_id = @tokenId');
+      }
+    }
+
+    res.clearCookie('refreshToken', cookieOptions());
+    return res.json({ message: 'Logged out' });
+  } catch (error) {
+    console.error('Logout Error:', error);
+    return res.status(500).json({ message: 'Server error' });
   }
 };

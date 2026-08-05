@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { Lock, User, ShieldCheck } from 'lucide-react';
@@ -12,6 +12,15 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const adminToken = localStorage.getItem('adminToken');
+    const adminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+
+    if (adminToken && adminLoggedIn) {
+      navigate('/admin', { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -100,10 +109,6 @@ const AdminLogin = () => {
             {isLoading ? 'Logging in...' : 'Login to Admin'}
           </button>
         </form>
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-500">
-          <p><strong>Email:</strong>admin@saiswarnpalace.com</p>
-          <p><strong>Password:</strong> Ssp@277369</p>
-        </div>
       </div>
     </div>
   );

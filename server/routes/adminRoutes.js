@@ -1,19 +1,33 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/auth');
+const { requireCsrf } = require('../middleware/csrf');
 const requireAdmin = authMiddleware.requireAdmin;
 const upload = require('../config/upload');
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  message: {
+    message: 'Too many login attempts from this IP, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Public route - Admin login
-router.post('/login', adminController.adminLogin);
+router.post('/login', authLimiter, adminController.adminLogin);
 
 // Protected routes - require valid admin token
 router.use(authMiddleware, requireAdmin);
+router.use(requireCsrf);
 
 // Dashboard
 router.get('/dashboard', adminController.getDashboardStats);
 router.get('/reports', adminController.getReports);
+router.get('/refresh-tokens', adminController.listRefreshTokens);
 
 // Users
 router.get('/users', adminController.getUsers);
@@ -21,6 +35,9 @@ router.delete('/users/:id', adminController.deleteUser);
 router.get('/users/:id/proofs', adminController.getUserProofs);
 router.put('/users/:id/proofs/:proofId/approve', adminController.approveProof);
 router.put('/users/:id/proofs/:proofId/reject', adminController.rejectProof);
+
+// Emergency: clear refresh tokens (revokes all refresh tokens)
+router.post('/clear-refresh-tokens', adminController.clearRefreshTokens);
 
 // Categories
 router.get('/categories', adminController.getCategories);

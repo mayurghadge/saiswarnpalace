@@ -577,7 +577,12 @@ const AdminDashboard = () => {
     try {
       const url = editingProduct ? `${API_BASE_URL}/products/${editingProduct.id}` : `${API_BASE_URL}/products`;
       const method = editingProduct ? 'PUT' : 'POST';
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
+
+      if (!token) {
+        toast.error('Admin authorization is required');
+        return;
+      }
 
       const formData = new FormData();
       for (let key in productForm) {
@@ -610,7 +615,12 @@ const AdminDashboard = () => {
     try {
       const url = editingCategory ? `${API_BASE_URL}/categories/${editingCategory.id}` : `${API_BASE_URL}/categories`;
       const method = editingCategory ? 'PUT' : 'POST';
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken');
+
+      if (!token) {
+        toast.error('Admin authorization is required');
+        return;
+      }
 
       const formData = new FormData();
       for (let key in categoryForm) {

@@ -20,9 +20,9 @@ test('isDbUnavailableError detects Azure SQL firewall blocks', () => {
 
 test('getUserColumnMap returns the schema-compatible user columns', () => {
   const columns = getUserColumnMap();
-  assert.equal(columns.id, 'id');
-  assert.equal(columns.name, 'name');
-  assert.equal(columns.email, 'email');
-  assert.equal(columns.phone, 'phone');
-  assert.equal(columns.password, 'password');
+  assert.equal(columns.id, 'Id');
+  assert.equal(columns.name, 'FullName');
+  assert.equal(columns.email, 'Email');
+  assert.equal(columns.phone, 'Phone');
+  assert.equal(columns.password, 'Password');
 });

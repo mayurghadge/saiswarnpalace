@@ -8,20 +8,16 @@
 ## Step 2: Get Your Cloudinary Credentials
 1. Log in to your Cloudinary account
 2. Go to the **Dashboard**
-3. Look for the **Account Details** section
-4. You will see:
-   - Cloud name=(saiswarnpalace)
-   - API Key=(841913584325953)
-   - API Secret=(4SiEYt2FLSuGztmcGV2NtCnkDXg)
+3. Copy your **Cloud name**, **API Key** and **API Secret** (DO NOT commit these to source control)
 
 ## Step 3: Update .env File
-Open `server/.env` and add your Cloudinary credentials:
+Open `server/.env` and add your Cloudinary credentials (use secure secrets management):
 
 ```env
 # Cloudinary Configuration (For Image Uploads)
-CLOUDINARY_CLOUD_NAME=saiswarnpalace
-CLOUDINARY_API_KEY=841913584325953
-CLOUDINARY_API_SECRET=4SiEYt2FLSuGztmcGV2NtCnkDXg
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 ```
 
 ## Step 4: How It Works

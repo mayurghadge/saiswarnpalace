@@ -4,22 +4,34 @@ const jwt = require('jsonwebtoken');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 
-const fallbackAdminEmail = (process.env.ADMIN_EMAIL || 'admin@saiswarnpalace.com').toLowerCase();
-const fallbackAdminPassword = process.env.ADMIN_PASSWORD || 'Ssp@277369';
+const fallbackAdminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+const fallbackAdminPassword = process.env.ADMIN_PASSWORD;
 
-const createAdminToken = (admin) => jwt.sign(
-  { id: admin?.id || 1, email: admin?.email || fallbackAdminEmail, role: 'admin' },
-  process.env.JWT_SECRET || 'your-secret-key',
-  { expiresIn: '7d' }
-);
+const createAdminToken = (admin) => {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET must be set to sign admin tokens');
+  }
+
+  if (!admin || !admin.email) {
+    throw new Error('Admin details are required to create a token');
+  }
+
+  return jwt.sign(
+    { id: admin.id || 1, email: admin.email, role: 'admin' },
+    jwtSecret,
+    { expiresIn: '7d' }
+  );
+};
 
 const isFallbackAdminLogin = (email = '', password = '') => {
+  if (!fallbackAdminEmail || !fallbackAdminPassword) {
+    return false;
+  }
+
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const normalizedPassword = String(password || '');
-  return (
-    (normalizedEmail === fallbackAdminEmail || normalizedEmail === 'admin@saiswarnpalace' || normalizedEmail === 'admin') &&
-    normalizedPassword === fallbackAdminPassword
-  );
+  return normalizedEmail === fallbackAdminEmail && normalizedPassword === fallbackAdminPassword;
 };
 
 exports.isFallbackAdminLogin = isFallbackAdminLogin;
@@ -566,10 +578,6 @@ exports.adminLogin = async (req, res) => {
     }
 
     const fallbackLogin = isFallbackAdminLogin(email, password);
-
-    // The login page displays these configured emergency credentials.  They
-    // must remain usable even when an older Admins row has a different stored
-    // password, otherwise the database row incorrectly masks the fallback.
     if (fallbackLogin) {
       const token = createAdminToken({ id: 1, email: fallbackAdminEmail, name: 'Admin' });
       return res.status(200).json({
@@ -579,72 +587,79 @@ exports.adminLogin = async (req, res) => {
       });
     }
 
+    const pool = await connectDB();
+    let admin = null;
+
     try {
-      const pool = await connectDB();
-      let admin = null;
+      const result = await pool.request()
+        .input('email', sql.NVarChar, email)
+        .query('SELECT * FROM Admins WHERE email = @email');
 
-      try {
-        const result = await pool.request()
-          .input('email', sql.NVarChar, email)
-          .query('SELECT * FROM Admins WHERE email = @email');
-
-        if (result.recordset.length > 0) {
-          admin = result.recordset[0];
-        }
-      } catch (dbError) {
-        console.error('Admin Login DB Error:', dbError);
-        if (fallbackLogin) {
-          const token = createAdminToken({ id: 1, email, name: 'Admin' });
-          return res.status(200).json({
-            message: 'Login successful',
-            token,
-            admin: { id: 1, name: 'Admin', email }
-          });
-        }
-        return res.status(503).json({ message: 'Database unavailable. Please try again later.' });
+      if (result.recordset.length > 0) {
+        admin = result.recordset[0];
       }
-
-      if (!admin) {
-        if (fallbackLogin) {
-          const token = createAdminToken({ id: 1, email, name: 'Admin' });
-          return res.status(200).json({
-            message: 'Login successful',
-            token,
-            admin: { id: 1, name: 'Admin', email }
-          });
-        }
-
-        return res.status(404).json({ message: 'Admin not found' });
-      }
-
-      const isMatch = await bcrypt.compare(password, admin.password);
-      const isPlainTextMatch = admin.password && String(admin.password) === String(password);
-      if (!isMatch && !isPlainTextMatch) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const token = createAdminToken(admin);
-
-      res.status(200).json({
-        message: 'Login successful',
-        token,
-        admin: { id: admin.id, name: admin.name, email: admin.email }
-      });
     } catch (dbError) {
       console.error('Admin Login DB Error:', dbError);
-      if (fallbackLogin) {
-        const token = createAdminToken({ id: 1, email, name: 'Admin' });
-        return res.status(200).json({
-          message: 'Login successful',
-          token,
-          admin: { id: 1, name: 'Admin', email }
-        });
-      }
       return res.status(503).json({ message: 'Database unavailable. Please try again later.' });
     }
+
+    if (!admin || !admin.password) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    const isPlainTextMatch = String(password) === String(admin.password);
+    if (!isMatch && !isPlainTextMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = createAdminToken(admin);
+
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      admin: { id: admin.id, name: admin.name, email: admin.email }
+    });
   } catch (error) {
     console.error('Admin Login Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Clear all refresh tokens (admin-only emergency action)
+exports.clearRefreshTokens = async (req, res) => {
+  try {
+    const pool = await connectDB();
+    await ensureRefreshTokensTable(pool);
+    await pool.request().query('DELETE FROM RefreshTokens');
+    res.status(200).json({ message: 'All refresh tokens cleared' });
+  } catch (error) {
+    console.error('Clear Refresh Tokens Error:', error);
+    res.status(500).json({ message: 'Failed to clear refresh tokens', error: error.message });
+  }
+};
+
+exports.listRefreshTokens = async (req, res) => {
+  try {
+    const pool = await connectDB();
+    await ensureRefreshTokensTable(pool);
+    const result = await pool.request().query(`
+      SELECT
+        id,
+        token_id AS tokenId,
+        user_id AS userId,
+        revoked,
+        expires_at AS expiresAt,
+        ip_address AS ipAddress,
+        user_agent AS userAgent,
+        created_at AS createdAt
+      FROM RefreshTokens
+      ORDER BY created_at DESC
+    `);
+    res.status(200).json({ refreshTokens: result.recordset });
+  } catch (error) {
+    console.error('List Refresh Tokens Error:', error);
+    res.status(500).json({ message: 'Failed to list refresh tokens', error: error.message });
   }
 };
 
