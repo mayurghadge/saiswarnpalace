@@ -53,6 +53,7 @@ test('Refresh token rotates and returns new access token', async (t) => {
   };
 
   mockDbModule({ connectDB: async () => mockPool, sql: {} });
+  delete require.cache[require.resolve('../server')];
 
   // Now require the server AFTER mocking db
   const app = require('../server');
