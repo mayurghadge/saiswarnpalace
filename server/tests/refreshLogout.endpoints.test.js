@@ -78,10 +78,20 @@ test('Refresh token rotates and returns new access token', async (t) => {
   const csrfCookie = csrfRes.headers['set-cookie'].find((cookie) => cookie.startsWith('XSRF-TOKEN='));
   const csrfCookieValue = csrfCookie.split(';')[0];
 
-  const res = await request.post('/api/users/refresh-token')
-    .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookieValue}`)
-    .set('X-CSRF-Token', xsrfToken)
-    .expect(200);
+  let res;
+  try {
+    res = await request.post('/api/users/refresh-token')
+      .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookieValue}`)
+      .set('X-CSRF-Token', xsrfToken)
+      .expect(200);
+  } catch (error) {
+    if (error.response) {
+      console.error('DEBUG refresh request body:', error.response.body);
+      console.error('DEBUG refresh request headers:', error.response.headers);
+      console.error('DEBUG refresh request status:', error.response.status);
+    }
+    throw error;
+  }
 
   assert.ok(res.body.token, 'access token returned');
   const setCookie = res.headers['set-cookie'];
