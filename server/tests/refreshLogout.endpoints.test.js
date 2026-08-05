@@ -68,12 +68,9 @@ test('Refresh token rotates and returns new access token', async (t) => {
 
   clearAppAndControllerCache();
   mockDbModule({ connectDB: async () => mockPool, sql: {} });
-  const dbPath = require.resolve('../config/db');
-  console.log('DEBUG refresh test config/db exports before server:', require.cache[dbPath]?.exports);
 
   // Now require the server AFTER mocking db
   const app = require('../server');
-  console.log('DEBUG refresh test config/db exports after server:', require.cache[dbPath]?.exports);
   const request = supertest(app);
 
   const csrfRes = await request.get('/api/csrf-token').expect(200);
@@ -81,21 +78,10 @@ test('Refresh token rotates and returns new access token', async (t) => {
   const csrfCookie = csrfRes.headers['set-cookie'].find((cookie) => cookie.startsWith('XSRF-TOKEN='));
   const csrfCookieValue = csrfCookie.split(';')[0];
 
-  let res;
-  try {
-    res = await request.post('/api/users/refresh-token')
-      .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookieValue}`)
-      .set('X-CSRF-Token', xsrfToken)
-      .expect(200);
-  } catch (error) {
-    console.error('DEBUG refresh request error:', error.message || error);
-    if (error.response) {
-      console.error('DEBUG refresh request response status:', error.response.status);
-      console.error('DEBUG refresh request response headers:', error.response.headers);
-      console.error('DEBUG refresh request response body:', error.response.body);
-    }
-    throw error;
-  }
+  const res = await request.post('/api/users/refresh-token')
+    .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookieValue}`)
+    .set('X-CSRF-Token', xsrfToken)
+    .expect(200);
 
   assert.ok(res.body.token, 'access token returned');
   const setCookie = res.headers['set-cookie'];
