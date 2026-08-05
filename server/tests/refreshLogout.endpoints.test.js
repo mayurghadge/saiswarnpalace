@@ -50,9 +50,10 @@ test('Refresh token rotates and returns new access token', async (t) => {
   const csrfRes = await request.get('/api/csrf-token').expect(200);
   const xsrfToken = csrfRes.body.csrfToken;
   const csrfCookie = csrfRes.headers['set-cookie'].find((cookie) => cookie.startsWith('XSRF-TOKEN='));
+  const csrfCookieValue = csrfCookie.split(';')[0];
 
   const res = await request.post('/api/users/refresh-token')
-    .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookie}`)
+    .set('Cookie', `refreshToken=${tokenId}:${tokenValue}; ${csrfCookieValue}`)
     .set('X-CSRF-Token', xsrfToken)
     .expect(200);
 
