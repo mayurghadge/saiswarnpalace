@@ -88,10 +88,11 @@ test('Refresh token rotates and returns new access token', async (t) => {
       .set('X-CSRF-Token', xsrfToken)
       .expect(200);
   } catch (error) {
+    console.error('DEBUG refresh request error:', error.message || error);
     if (error.response) {
-      console.error('DEBUG refresh request body:', error.response.body);
-      console.error('DEBUG refresh request headers:', error.response.headers);
-      console.error('DEBUG refresh request status:', error.response.status);
+      console.error('DEBUG refresh request response status:', error.response.status);
+      console.error('DEBUG refresh request response headers:', error.response.headers);
+      console.error('DEBUG refresh request response body:', error.response.body);
     }
     throw error;
   }
