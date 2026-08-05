@@ -5,13 +5,13 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 
 process.env.NODE_ENV = 'test';
-process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-process.env.ACCESS_TOKEN_EXPIRES = process.env.ACCESS_TOKEN_EXPIRES || '15m';
-process.env.REFRESH_TOKEN_DAYS = process.env.REFRESH_TOKEN_DAYS || '30';
-process.env.REFRESH_TOKEN_BINDING_STRICT = process.env.REFRESH_TOKEN_BINDING_STRICT || 'false';
-process.env.SENTRY_DSN = process.env.SENTRY_DSN || '';
-process.env.DB_DRIVER = process.env.DB_DRIVER || 'tedious';
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+process.env.FRONTEND_URL = 'http://localhost:5173';
+process.env.ACCESS_TOKEN_EXPIRES = '15m';
+process.env.REFRESH_TOKEN_DAYS = '30';
+process.env.REFRESH_TOKEN_BINDING_STRICT = 'false';
+process.env.SENTRY_DSN = '';
+process.env.DB_DRIVER = 'tedious';
+process.env.JWT_SECRET = 'test-secret';
 
 const csrf = require('../middleware/csrf');
 
@@ -68,9 +68,12 @@ test('Refresh token rotates and returns new access token', async (t) => {
 
   clearAppAndControllerCache();
   mockDbModule({ connectDB: async () => mockPool, sql: {} });
+  const dbPath = require.resolve('../config/db');
+  console.log('DEBUG refresh test config/db exports before server:', require.cache[dbPath]?.exports);
 
   // Now require the server AFTER mocking db
   const app = require('../server');
+  console.log('DEBUG refresh test config/db exports after server:', require.cache[dbPath]?.exports);
   const request = supertest(app);
 
   const csrfRes = await request.get('/api/csrf-token').expect(200);
