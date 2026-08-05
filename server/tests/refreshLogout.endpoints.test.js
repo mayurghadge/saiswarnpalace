@@ -18,7 +18,21 @@ const csrf = require('../middleware/csrf');
 // Helper to inject a mock DB module before loading the app
 function mockDbModule(mockExports) {
   const dbPath = require.resolve('../config/db');
-  require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: mockExports };
+  delete require.cache[dbPath];
+  require.cache[dbPath] = {
+    id: dbPath,
+    filename: dbPath,
+    loaded: true,
+    exports: mockExports
+  };
+}
+
+function clearAppAndControllerCache() {
+  const serverPath = require.resolve('../server');
+  const userControllerPath = require.resolve('../controllers/userController');
+
+  delete require.cache[serverPath];
+  delete require.cache[userControllerPath];
 }
 
 test('Refresh token rotates and returns new access token', async (t) => {
@@ -52,8 +66,8 @@ test('Refresh token rotates and returns new access token', async (t) => {
     }
   };
 
+  clearAppAndControllerCache();
   mockDbModule({ connectDB: async () => mockPool, sql: {} });
-  delete require.cache[require.resolve('../server')];
 
   // Now require the server AFTER mocking db
   const app = require('../server');
