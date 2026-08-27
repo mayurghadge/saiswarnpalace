@@ -200,7 +200,7 @@ The database includes the following tables:
 - Email: `admin@saiswarnpalace`
 - Password: configure a strong admin password in `server/.env` (DO NOT commit real secrets)
 
-Note: If you found real credentials in this repository, rotate them immediately and remove any copies. See `server/.env.example` for required variables.
+Note: If you found real credentials in this repository, rotate them immediately and remove any copies. Configure production credentials as deployment environment variables; never commit real secrets.
 
 ## Project Structure
 

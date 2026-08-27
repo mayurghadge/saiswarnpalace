@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const dotenvSafe = require('dotenv-safe');
+const dotenv = require('dotenv');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
@@ -9,10 +9,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const { generateCsrfToken, requireCsrf } = require('./middleware/csrf');
 
-dotenvSafe.config({
-  allowEmptyValues: true,
-  example: path.join(__dirname, '.env.example')
-});
+dotenv.config({ path: path.join(__dirname, '.env'), quiet: true });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
