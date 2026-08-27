@@ -314,6 +314,11 @@ const AdminDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [reports, setReports] = useState({ summary: {}, dailyReports: [], userReports: [] });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSavingRates, setIsSavingRates] = useState(false);
+  const [rateForm, setRateForm] = useState({
+    gold_rate_18k: '', gold_rate_22k: '', gold_rate_24k: '', silver_rate: '', gst_rate: '',
+  });
+  const [hasUnsavedRateChanges, setHasUnsavedRateChanges] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
   const refreshInFlightRef = useRef(false);
 
@@ -443,7 +448,19 @@ const AdminDashboard = () => {
   }, [activeTab, couponFilter, couponSearchInput, location.pathname, location.search, navigate]);
 
   const { goldRate18k, setGoldRate18k, goldRate22k, setGoldRate22k, goldRate24k, setGoldRate24k,
-    silverRate, setSilverRate, gstRate, setGstRate } = useGoldRate();
+    silverRate, setSilverRate, gstRate, setGstRate, refreshRates } = useGoldRate();
+
+  useEffect(() => {
+    if (hasUnsavedRateChanges) return;
+
+    setRateForm({
+      gold_rate_18k: String(goldRate18k ?? ''),
+      gold_rate_22k: String(goldRate22k ?? ''),
+      gold_rate_24k: String(goldRate24k ?? ''),
+      silver_rate: String(silverRate ?? ''),
+      gst_rate: String(gstRate ?? ''),
+    });
+  }, [goldRate18k, goldRate22k, goldRate24k, silverRate, gstRate, hasUnsavedRateChanges]);
 
   const loadDashboardData = useCallback(async ({ announce = false } = {}) => {
     if (refreshInFlightRef.current) return false;
@@ -836,20 +853,77 @@ const AdminDashboard = () => {
   };
 
   const handleSaveRates = async () => {
+    if (isSavingRates) return;
+
+    const ratePayload = {
+      gold_rate_18k: Number(rateForm.gold_rate_18k),
+      gold_rate_22k: Number(rateForm.gold_rate_22k),
+      gold_rate_24k: Number(rateForm.gold_rate_24k),
+      silver_rate: Number(rateForm.silver_rate),
+      gst_rate: Number(rateForm.gst_rate),
+    };
+
+    const invalidMetalRate = [
+      ratePayload.gold_rate_18k,
+      ratePayload.gold_rate_22k,
+      ratePayload.gold_rate_24k,
+      ratePayload.silver_rate,
+    ].some((rate) => !Number.isFinite(rate) || rate <= 0);
+
+    if (invalidMetalRate || !Number.isFinite(ratePayload.gst_rate) || ratePayload.gst_rate < 0) {
+      toast.error('Enter valid positive metal rates and a valid GST rate.');
+      return;
+    }
+
     try {
-      await fetch(`${API_BASE_URL}/gold-rates`, {
-        method: 'PUT', headers: getAuthHeaders(),
-        body: JSON.stringify({
-          gold_rate_18k: goldRate18k, gold_rate_22k: goldRate22k,
-          gold_rate_24k: goldRate24k, silver_rate: silverRate,
-          gst_rate: gstRate,
-        }),
+      setIsSavingRates(true);
+
+      const csrfResponse = await fetch(`${publicApiBaseUrl}/csrf-token`, {
+        credentials: 'include',
+        cache: 'no-store',
       });
-      toast.success('Saved');
+      const csrfData = await csrfResponse.json().catch(() => ({}));
+      if (!csrfResponse.ok || !csrfData.csrfToken) {
+        throw new Error(csrfData.message || 'Unable to secure the rate update request');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/gold-rates`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          ...getAuthHeaders(),
+          'X-CSRF-Token': csrfData.csrfToken,
+        },
+        body: JSON.stringify(ratePayload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to save gold rates');
+      }
+
+      localStorage.setItem('saiswarnpalace:gold-rates-updated', String(Date.now()));
+      setGoldRate18k(ratePayload.gold_rate_18k);
+      setGoldRate22k(ratePayload.gold_rate_22k);
+      setGoldRate24k(ratePayload.gold_rate_24k);
+      setSilverRate(ratePayload.silver_rate);
+      setGstRate(ratePayload.gst_rate);
+      setHasUnsavedRateChanges(false);
+      setRateForm(Object.fromEntries(
+        Object.entries(ratePayload).map(([key, value]) => [key, String(value)])
+      ));
+      await Promise.all([refreshRates(), refreshAdminData()]);
+      toast.success(data.message || 'Gold rates saved and updated.');
     } catch (err) {
       console.error(err);
-      toast.error('Failed');
+      toast.error(err.message || 'Unable to save gold rates');
+    } finally {
+      setIsSavingRates(false);
     }
+  };
+
+  const updateRateForm = (field, value) => {
+    setRateForm((current) => ({ ...current, [field]: value }));
+    setHasUnsavedRateChanges(true);
   };
 
   // Proof Management
@@ -1415,20 +1489,27 @@ const AdminDashboard = () => {
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold mb-6">Gold & Silver Rates</h2>
                 <div className="grid md:grid-cols-4 gap-8">
-                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">18K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" value={goldRate18k} onChange={(e) => setGoldRate18k(parseInt(e.target.value) || 0)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
-                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">22K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" value={goldRate22k} onChange={(e) => setGoldRate22k(parseInt(e.target.value) || 0)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
-                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">24K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" value={goldRate24k} onChange={(e) => setGoldRate24k(parseInt(e.target.value) || 0)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
-                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">Silver Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" value={silverRate} onChange={(e) => setSilverRate(parseInt(e.target.value) || 0)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
+                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">18K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" min="0" step="0.01" value={rateForm.gold_rate_18k} onChange={(e) => updateRateForm('gold_rate_18k', e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
+                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">22K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" min="0" step="0.01" value={rateForm.gold_rate_22k} onChange={(e) => updateRateForm('gold_rate_22k', e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
+                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">24K Gold Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" min="0" step="0.01" value={rateForm.gold_rate_24k} onChange={(e) => updateRateForm('gold_rate_24k', e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
+                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">Silver Rate (per gram)</label><div className="flex items-center gap-3"><span className="text-gray-500 text-xl">₹</span><input type="number" min="0" step="0.01" value={rateForm.silver_rate} onChange={(e) => updateRateForm('silver_rate', e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /></div></div>
                 </div>
               </div>
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold mb-6">GST</h2>
                 <div className="grid md:grid-cols-1 gap-8">
-                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">GST Rate (%)</label><div className="flex items-center gap-3"><input type="number" step="0.1" value={gstRate} onChange={(e) => setGstRate(parseFloat(e.target.value) || 0)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /><span className="text-gray-500 text-xl">%</span></div></div>
+                  <div><label className="block text-sm font-semibold text-gray-700 mb-3">GST Rate (%)</label><div className="flex items-center gap-3"><input type="number" min="0" step="0.1" value={rateForm.gst_rate} onChange={(e) => updateRateForm('gst_rate', e.target.value)} className="flex-1 px-4 py-3 border border-gray-300 rounded-lg" /><span className="text-gray-500 text-xl">%</span></div></div>
                 </div>
               </div>
               <div className="flex justify-end">
-                <button onClick={handleSaveRates} className="px-8 py-4 bg-[#9D7E2A] text-white rounded-lg font-semibold text-lg hover:bg-yellow-700">Save Changes</button>
+                <button
+                  type="button"
+                  onClick={handleSaveRates}
+                  disabled={isSavingRates}
+                  className="px-8 py-4 bg-[#9D7E2A] text-white rounded-lg font-semibold text-lg hover:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSavingRates ? 'Saving…' : 'Save Changes'}
+                </button>
               </div>
             </div>
           </div>

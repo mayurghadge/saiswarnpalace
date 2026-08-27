@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const GoldRateContext = createContext();
 const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
+const RATE_REFRESH_INTERVAL_MS = 60_000;
 
 export const GoldRateProvider = ({ children }) => {
   // Gold rate per gram (INR)
@@ -12,26 +13,49 @@ export const GoldRateProvider = ({ children }) => {
   const [silverRate, setSilverRate] = useState(266); // Silver rate per gram
   const [gstRate, setGstRate] = useState(3); // GST percentage
 
-  useEffect(() => {
-    const loadRates = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/gold-rates`);
-        if (!response.ok) return;
-        const data = await response.json();
-        const rates = data.rates || {};
+  const refreshRates = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/gold-rates`, { cache: 'no-store' });
+      if (!response.ok) return false;
 
-        if (rates.gold_rate_18k != null) setGoldRate18k(Number(rates.gold_rate_18k) || 0);
-        if (rates.gold_rate_22k != null) setGoldRate22k(Number(rates.gold_rate_22k) || 0);
-        if (rates.gold_rate_24k != null) setGoldRate24k(Number(rates.gold_rate_24k) || 0);
-        if (rates.silver_rate != null) setSilverRate(Number(rates.silver_rate) || 0);
-        if (rates.gst_rate != null) setGstRate(Number(rates.gst_rate) || 0);
-      } catch (error) {
-        console.error('Failed to load rates:', error);
-      }
+      const data = await response.json();
+      const rates = data.rates || {};
+
+      if (rates.gold_rate_18k != null) setGoldRate18k(Number(rates.gold_rate_18k) || 0);
+      if (rates.gold_rate_22k != null) setGoldRate22k(Number(rates.gold_rate_22k) || 0);
+      if (rates.gold_rate_24k != null) setGoldRate24k(Number(rates.gold_rate_24k) || 0);
+      if (rates.silver_rate != null) setSilverRate(Number(rates.silver_rate) || 0);
+      if (rates.gst_rate != null) setGstRate(Number(rates.gst_rate) || 0);
+      return true;
+    } catch (error) {
+      console.error('Failed to load rates:', error);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshRates();
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshRates();
     };
 
-    loadRates();
-  }, []);
+    const refreshFromAnotherTab = (event) => {
+      if (event.key === 'saiswarnpalace:gold-rates-updated') refreshRates();
+    };
+
+    const refreshTimer = setInterval(refreshRates, RATE_REFRESH_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshRates);
+    window.addEventListener('storage', refreshFromAnotherTab);
+
+    return () => {
+      clearInterval(refreshTimer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshRates);
+      window.removeEventListener('storage', refreshFromAnotherTab);
+    };
+  }, [refreshRates]);
 
   const normalizePurity = (purity = '22k') => String(purity).trim().toUpperCase();
 
@@ -133,6 +157,7 @@ export const GoldRateProvider = ({ children }) => {
       setSilverRate,
       gstRate,
       setGstRate,
+      refreshRates,
       calculateGoldPrice,
       getRateForPurity,
       calculateProductEstimate

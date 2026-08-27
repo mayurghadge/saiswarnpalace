@@ -91,7 +91,7 @@ app.get('/api/csrf-token', (req, res) => {
   res.cookie('XSRF-TOKEN', token, {
     httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'Lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
     maxAge: 1000 * 60 * 60 // 1 hour
   });
   res.json({ csrfToken: token });

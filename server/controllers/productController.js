@@ -173,6 +173,8 @@ exports.getCategories = async (req, res) => {
 
 // Get gold rates
 exports.getGoldRates = async (req, res) => {
+  res.set('Cache-Control', 'no-store, max-age=0');
+
   try {
     const pool = await connectDB();
     const result = await pool.request().query(`
