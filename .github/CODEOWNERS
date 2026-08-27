@@ -1,9 +1,5 @@
 # Replace these placeholders with your actual GitHub organization/team names.
 # Example:
-# /server/tests/integration/ @your-org/backend-team
-# /.github/workflows/integration-tests.yml @your-org/devops-team
 # /.github/workflows/setup-secrets.yml @your-org/security-team
 
-/server/tests/integration/ @your-org/backend-team
-/.github/workflows/integration-tests.yml @your-org/devops-team
 /.github/workflows/setup-secrets.yml @your-org/security-team

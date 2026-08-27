@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useGoldRate } from '../contexts/GoldRateContext';
 import {
@@ -20,7 +20,8 @@ import {
   Tag,
   BarChart3,
   IndianRupee,
-  CalendarDays
+  CalendarDays,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -312,6 +313,9 @@ const AdminDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [reports, setReports] = useState({ summary: {}, dailyReports: [], userReports: [] });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
+  const refreshInFlightRef = useRef(false);
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -441,56 +445,116 @@ const AdminDashboard = () => {
   const { goldRate18k, setGoldRate18k, goldRate22k, setGoldRate22k, goldRate24k, setGoldRate24k,
     silverRate, setSilverRate, gstRate, setGstRate } = useGoldRate();
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async ({ announce = false } = {}) => {
+    if (refreshInFlightRef.current) return false;
+
+    refreshInFlightRef.current = true;
+    setIsRefreshing(true);
+
     try {
-      const [statsRes, productsRes, ordersRes, usersRes, contactsRes, couponsRes, reportsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/dashboard`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/products`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/orders`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/contacts`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/coupons`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/reports`, { headers: getAuthHeaders() }),
-      ]);
+      const endpoints = [
+        ['stats', `${API_BASE_URL}/dashboard`],
+        ['products', `${API_BASE_URL}/products`],
+        ['orders', `${API_BASE_URL}/orders`],
+        ['users', `${API_BASE_URL}/users`],
+        ['contacts', `${API_BASE_URL}/contacts`],
+        ['coupons', `${API_BASE_URL}/coupons`],
+        ['reports', `${API_BASE_URL}/reports`],
+      ];
 
-      const statsData = await statsRes.json();
-      const productsData = await productsRes.json();
-      const ordersData = await ordersRes.json();
-      const usersData = await usersRes.json();
-      const contactsData = await contactsRes.json();
-      const couponsData = await couponsRes.json();
-      const reportsData = await reportsRes.json();
+      const results = await Promise.allSettled(
+        endpoints.map(async ([key, url]) => {
+          const response = await fetch(url, { headers: getAuthHeaders() });
+          const data = await response.json().catch(() => ({}));
 
-      setDashboardStats(statsData);
-      setProducts(productsData.products || []);
-      setOrders(ordersData.orders || []);
-      setUsers(usersData.users || []);
-      setContacts(contactsData.contacts || []);
-      setCoupons(couponsData.coupons || []);
-      if (reportsRes.ok) setReports(reportsData);
+          if (!response.ok) {
+            const error = new Error(data.message || `Unable to refresh ${key}`);
+            error.status = response.status;
+            throw error;
+          }
 
-      if (statsData.goldRates) {
-        const rates = statsData.goldRates;
-        if (rates.gold_rate_18k != null) setGoldRate18k(Number(rates.gold_rate_18k) || 0);
-        if (rates.gold_rate_22k != null) setGoldRate22k(Number(rates.gold_rate_22k) || 0);
-        if (rates.gold_rate_24k != null) setGoldRate24k(Number(rates.gold_rate_24k) || 0);
-        if (rates.silver_rate != null) setSilverRate(Number(rates.silver_rate) || 0);
-        if (rates.gst_rate != null) setGstRate(Number(rates.gst_rate) || 0);
+          return { key, data };
+        })
+      );
+
+      const authFailure = results.find(
+        (result) => result.status === 'rejected' && [401, 403].includes(result.reason?.status)
+      );
+
+      if (authFailure) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminLoggedIn');
+        toast.error('Your admin session has expired. Please log in again.');
+        navigate('/admin-login', { replace: true });
+        return false;
       }
+
+      const dataByKey = {};
+      const failedRequests = [];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          dataByKey[result.value.key] = result.value.data;
+        } else {
+          failedRequests.push(result.reason);
+        }
+      });
+
+      if (dataByKey.stats) {
+        setDashboardStats(dataByKey.stats);
+        const rates = dataByKey.stats.goldRates;
+        if (rates) {
+          if (rates.gold_rate_18k != null) setGoldRate18k(Number(rates.gold_rate_18k) || 0);
+          if (rates.gold_rate_22k != null) setGoldRate22k(Number(rates.gold_rate_22k) || 0);
+          if (rates.gold_rate_24k != null) setGoldRate24k(Number(rates.gold_rate_24k) || 0);
+          if (rates.silver_rate != null) setSilverRate(Number(rates.silver_rate) || 0);
+          if (rates.gst_rate != null) setGstRate(Number(rates.gst_rate) || 0);
+        }
+      }
+
+      if (dataByKey.products) setProducts(dataByKey.products.products || []);
+      if (dataByKey.orders) setOrders(dataByKey.orders.orders || []);
+      if (dataByKey.users) setUsers(dataByKey.users.users || []);
+      if (dataByKey.contacts) setContacts(dataByKey.contacts.contacts || []);
+      if (dataByKey.coupons) setCoupons(dataByKey.coupons.coupons || []);
+      if (dataByKey.reports) setReports(dataByKey.reports);
+
+      if (Object.keys(dataByKey).length > 0) {
+        setLastRefreshedAt(new Date());
+      }
+
+      if (failedRequests.length > 0) {
+        console.error('Some dashboard requests failed to refresh:', failedRequests);
+        if (announce) toast.error('Some dashboard sections could not be refreshed.');
+      } else if (announce) {
+        toast.success('Dashboard refreshed.');
+      }
+
+      return failedRequests.length === 0;
     } catch (err) {
       console.error(err);
+      if (announce) toast.error('Unable to refresh the dashboard.');
+      return false;
+    } finally {
+      refreshInFlightRef.current = false;
+      setIsRefreshing(false);
     }
-  };
+  }, [navigate, setGoldRate18k, setGoldRate22k, setGoldRate24k, setSilverRate, setGstRate]);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/categories`, { headers: getAuthHeaders() });
       const data = await res.json();
-      setCategories(data.categories || []);
+      if (res.ok) setCategories(data.categories || []);
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
+
+  const refreshAdminData = useCallback((options) => {
+    loadCategories();
+    return loadDashboardData(options);
+  }, [loadCategories, loadDashboardData]);
 
   const applyCategoryDefaults = (categoryId) => {
     const category = categories.find(item => String(item.id) === String(categoryId));
@@ -545,21 +609,20 @@ const AdminDashboard = () => {
       return;
     }
 
-    loadDashboardData();
-    loadCategories();
+    refreshAdminData();
 
     const handleTabActiveRefresh = () => {
       if (document.visibilityState === 'visible') {
-        loadDashboardData();
+        refreshAdminData();
       }
     };
 
     const handleWindowFocus = () => {
-      loadDashboardData();
+      refreshAdminData();
     };
 
     const refreshTimer = setInterval(() => {
-      loadDashboardData();
+      refreshAdminData();
     }, ADMIN_AUTO_REFRESH_MS);
 
     document.addEventListener('visibilitychange', handleTabActiveRefresh);
@@ -570,7 +633,7 @@ const AdminDashboard = () => {
       document.removeEventListener('visibilitychange', handleTabActiveRefresh);
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [navigate]);
+  }, [navigate, refreshAdminData]);
 
   const handleSaveProduct = async (e) => {
     e.preventDefault();
@@ -902,7 +965,23 @@ const AdminDashboard = () => {
           <div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-8">
               <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-              <div className="text-sm md:text-base text-gray-500">{new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
+              <div className="flex flex-wrap items-center gap-3 text-sm md:text-base text-gray-500">
+                <span>{new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</span>
+                {lastRefreshedAt && (
+                  <span className="text-xs text-gray-400">
+                    Updated {lastRefreshedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => refreshAdminData({ announce: true })}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#9D7E2A] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#856b24] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                </button>
+              </div>
             </div>
             <div className="grid md:grid-cols-4 gap-6 mb-8">
               {[
@@ -1057,8 +1136,14 @@ const AdminDashboard = () => {
                 <h1 className="text-3xl font-bold">Sales & User Reports</h1>
                 <p className="text-gray-500 mt-1">Daily figures use India Standard Time (IST).</p>
               </div>
-              <button onClick={loadDashboardData} className="px-4 py-2 rounded-lg bg-[#9D7E2A] text-white hover:bg-[#856b24]">
-                Refresh Report
+              <button
+                type="button"
+                onClick={() => refreshAdminData({ announce: true })}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#9D7E2A] text-white hover:bg-[#856b24] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                {isRefreshing ? 'Refreshing…' : 'Refresh Report'}
               </button>
             </div>
 
