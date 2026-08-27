@@ -602,7 +602,15 @@ exports.adminLogin = async (req, res) => {
     try {
       const result = await pool.request()
         .input('email', sql.NVarChar, email)
-        .query('SELECT * FROM Admins WHERE email = @email');
+        .query(`
+          SELECT
+            Id AS id,
+            FullName AS name,
+            Email AS email,
+            Password AS password
+          FROM Admins
+          WHERE LOWER(Email) = LOWER(@email)
+       `);
 
       if (result.recordset.length > 0) {
         admin = result.recordset[0];
