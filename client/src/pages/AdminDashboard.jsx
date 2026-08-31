@@ -718,7 +718,7 @@ const AdminDashboard = () => {
       loadDashboardData();
     } catch (err) {
       console.error(err);
-      toast.error('Failed');
+      toast.error(err.message || 'Failed');
     }
   };
 
@@ -762,7 +762,7 @@ const AdminDashboard = () => {
       loadDashboardData();
     } catch (err) {
       console.error(err);
-      toast.error('Failed');
+      toast.error(err.message || 'Failed');
     }
   };
 
