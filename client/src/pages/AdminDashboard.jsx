@@ -44,6 +44,31 @@ const getAuthHeaders = () => {
   };
 };
 
+const adminFetch = async (url, options = {}) => {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { ...(options.headers || {}) };
+
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const csrfResponse = await fetch(`${csrfApiBaseUrl}/csrf-token`, {
+      credentials: 'include',
+      cache: 'no-store'
+    });
+    const csrfData = await csrfResponse.json().catch(() => ({}));
+
+    if (!csrfResponse.ok || !csrfData.csrfToken) {
+      throw new Error(csrfData.message || 'Unable to secure this request');
+    }
+
+    headers['X-CSRF-Token'] = csrfData.csrfToken;
+  }
+
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers
+  });
+};
+
 const getImageUrl = (url) => {
   if (!url) return CLOUDINARY_FALLBACK;
   if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -675,8 +700,10 @@ const AdminDashboard = () => {
         formData.append('product_image', productImageFile);
       }
 
-      const res = await fetch(url, {
-        method, headers: { 'Authorization': `Bearer ${token}` }, body: formData,
+      const res = await adminFetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
       });
 
       if (res.ok) {
@@ -733,7 +760,7 @@ const AdminDashboard = () => {
   const handleDeleteProduct = async (id) => {
     if (confirm('Delete product?')) {
       try {
-        await fetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        await adminFetch(`${API_BASE_URL}/products/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
         setProducts(products.filter(p => p.id !== id));
         toast.success('Product deleted');
       } catch (err) {
@@ -745,7 +772,7 @@ const AdminDashboard = () => {
   const handleDeleteCategory = async (id) => {
     if (confirm('Delete category?')) {
       try {
-        await fetch(`${API_BASE_URL}/categories/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        await adminFetch(`${API_BASE_URL}/categories/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
         setCategories(categories.filter(c => c.id !== id));
         toast.success('Category deleted');
       } catch (err) {
@@ -767,7 +794,7 @@ const AdminDashboard = () => {
       const url = editingCoupon ? `${API_BASE_URL}/coupons/${editingCoupon.id}` : `${API_BASE_URL}/coupons`;
       const method = editingCoupon ? 'PUT' : 'POST';
       const payload = buildCouponPayload(couponForm);
-      const res = await fetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(payload) });
+      const res = await adminFetch(url, { method, headers: getAuthHeaders(), body: JSON.stringify(payload) });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success(editingCoupon ? 'Coupon updated' : 'Coupon added');
@@ -795,7 +822,7 @@ const AdminDashboard = () => {
   const handleDeleteCoupon = async (id) => {
     if (confirm('Delete coupon?')) {
       try {
-        await fetch(`${API_BASE_URL}/coupons/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        await adminFetch(`${API_BASE_URL}/coupons/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
         setCoupons(coupons.filter(c => c.id !== id));
         toast.success('Coupon deleted');
       } catch (err) {
@@ -807,7 +834,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (id) => {
     if (confirm('Delete user?')) {
       try {
-        await fetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+        await adminFetch(`${API_BASE_URL}/users/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
         setUsers(users.filter(u => u.id !== id));
         toast.success('User deleted');
       } catch (err) {
@@ -818,7 +845,7 @@ const AdminDashboard = () => {
 
   const handleUpdateContactStatus = async (id, status) => {
     try {
-      await fetch(`${API_BASE_URL}/contacts/${id}/status`, {
+      await adminFetch(`${API_BASE_URL}/contacts/${id}/status`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ status }),
       });
       setContacts(contacts.map(c => c.id === id ? { ...c, status } : c));
@@ -830,7 +857,7 @@ const AdminDashboard = () => {
 
   const handleUpdateOrderStatus = async (orderId, status) => {
     try {
-      await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+      await adminFetch(`${API_BASE_URL}/orders/${orderId}/status`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ order_status: status }),
       });
       setOrders(orders.map(o => o.id === orderId ? { ...o, order_status: status } : o));
@@ -888,7 +915,7 @@ const AdminDashboard = () => {
         throw new Error(csrfData.message || 'Unable to secure the rate update request');
       }
 
-      const response = await fetch(`${API_BASE_URL}/gold-rates`, {
+      const response = await adminFetch(`${API_BASE_URL}/gold-rates`, {
         method: 'PUT',
         credentials: 'include',
         headers: {
@@ -945,7 +972,7 @@ const AdminDashboard = () => {
 
   const handleApproveProof = async (proofId) => {
     try {
-      await fetch(`${API_BASE_URL}/users/${selectedUserProofs.user?.id}/proofs/${proofId}/approve`, {
+      await adminFetch(`${API_BASE_URL}/users/${selectedUserProofs.user?.id}/proofs/${proofId}/approve`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ notes: reviewNotes }),
       });
       toast.success('Approved');
@@ -960,7 +987,7 @@ const AdminDashboard = () => {
 
   const handleRejectProof = async (proofId) => {
     try {
-      await fetch(`${API_BASE_URL}/users/${selectedUserProofs.user?.id}/proofs/${proofId}/reject`, {
+      await adminFetch(`${API_BASE_URL}/users/${selectedUserProofs.user?.id}/proofs/${proofId}/reject`, {
         method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ notes: reviewNotes }),
       });
       toast.success('Rejected');
