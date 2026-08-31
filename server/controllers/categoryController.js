@@ -1092,8 +1092,7 @@ exports.calculateCategoryPrice = async (req, res) => {
                 WHEN UPPER(Purity) =
                   UPPER(@selectedPurity) THEN 0
                 ELSE 1
-              END,
-              UpdatedAt DESC
+              END
           ) AS rate_per_gram
 
         FROM dbo.Categories AS C
