@@ -1078,8 +1078,7 @@ exports.getDashboardStats = async (req, res) => {
           MAX(CASE WHEN Purity = '24K' THEN RatePerGram END) AS gold_rate_24k,
           MAX(CASE WHEN Purity = 'SILVER' THEN RatePerGram END) AS silver_rate,
           CAST(3 AS DECIMAL(18,2)) AS gst_rate,
-          CAST(12 AS DECIMAL(18,2)) AS wastage_rate,
-          MAX(UpdatedAt) AS updated_at
+          CAST(12 AS DECIMAL(18,2)) AS wastage_rate
         FROM GoldRates
       `)
     ]);
