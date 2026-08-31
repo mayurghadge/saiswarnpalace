@@ -1044,7 +1044,7 @@ exports.updateGoldRates = async (req, res) => {
           IF EXISTS (SELECT 1 FROM GoldRates WHERE Purity = @purity)
           BEGIN
             UPDATE GoldRates
-            SET RatePerGram = @rate, UpdatedAt = GETDATE()
+            SET RatePerGram = @rate
             WHERE Purity = @purity
           END
           ELSE
