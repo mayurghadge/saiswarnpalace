@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { getCartItemUnitPrice } from '../utils/pricing';
 
 const CartContext = createContext();
 
@@ -21,7 +22,6 @@ const buildCartItem = (product) => ({
   id: product.id,
   name: product.name,
   price: toNumber(product.estimated_price ?? product.discount_price ?? product.price, 0),
-  discount_price: product.discount_price != null ? toNumber(product.discount_price, 0) : null,
   estimated_price: product.estimated_price != null ? toNumber(product.estimated_price, 0) : null,
   image: product.image || product.images || '',
   sku: product.sku || null,
@@ -34,6 +34,9 @@ const buildCartItem = (product) => ({
   huid_hallmark: product.huid_hallmark || null,
   material: product.material || null,
   category_name: product.category_name || null,
+  gst_rate: toNumber(product.gst_rate, 0),
+  gst_amount: toNumber(product.gst_amount, 0),
+  product_discount: toNumber(product.product_discount, 0),
 });
 
 export const CartProvider = ({ children }) => {
@@ -122,7 +125,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart.reduce((sum, item) => sum + (item.discount_price || item.price) * item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + getCartItemUnitPrice(item) * item.quantity, 0);
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, wishlist, addToWishlist, removeFromWishlist }}>

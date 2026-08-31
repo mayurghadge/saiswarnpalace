@@ -139,6 +139,8 @@ exports.getProduct = async (req, res) => {
          p.MakingChargesPerGram AS making_charges,
          p.FixedMakingCharge AS fixed_making_charge,
          p.DiamondPrice AS diamond_price,
+         p.OtherCharges AS other_charges,
+         p.DiscountPercentage AS discount_percentage,
          p.ItemCode AS item_code,
          p.HUIDHallmark AS huid_hallmark,
          p.ImageURL AS images

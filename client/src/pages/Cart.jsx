@@ -6,6 +6,7 @@ import { Plus, Minus, Heart, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
+import { getCartItemUnitPrice } from '../utils/pricing';
 
 const Cart = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, clearCart, addToWishlist } = useCart();
@@ -16,8 +17,7 @@ const Cart = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(() => loadAppliedCoupon());
 
   const displayCart = cart;
-  const getItemUnitPrice = (item) => Number(item.discount_price ?? item.price ?? 0);
-  const subtotal = cart.reduce((sum, item) => sum + (getItemUnitPrice(item) * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (getCartItemUnitPrice(item) * item.quantity), 0);
   const tax = (subtotal * gstRate) / 100;
   const discountAmount = calculateDiscountFromCoupon(appliedCoupon, subtotal + tax);
   const total = subtotal + tax - discountAmount;
@@ -149,7 +149,7 @@ const Cart = () => {
 
                       {/* Price */}
                       <div className="md:col-span-1 text-sm text-gray-800">
-                        ₹{Math.round(getItemUnitPrice(item)).toLocaleString()}
+                        ₹{Math.round(getCartItemUnitPrice(item)).toLocaleString()}
                       </div>
 
                       {/* Quantity */}
@@ -173,7 +173,7 @@ const Cart = () => {
 
                       {/* Total */}
                       <div className="md:col-span-2 text-right text-sm font-medium text-[#9D7E2A]">
-                        ₹{Math.round(getItemUnitPrice(item) * (item.quantity || 1)).toLocaleString()}
+                        ₹{Math.round(getCartItemUnitPrice(item) * (item.quantity || 1)).toLocaleString()}
                       </div>
                     </div>
                   </div>

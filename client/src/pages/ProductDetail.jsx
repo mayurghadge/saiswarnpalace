@@ -167,6 +167,12 @@ const ProductDetail = () => {
                     <span className="font-semibold text-blue-600">₹{estimate.diamondPrice.toLocaleString()}</span>
                   </div>
                 )}
+                {estimate.otherCharges > 0 && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-600 font-medium">Other Charges</span>
+                    <span className="font-semibold text-gray-800">₹{Math.round(estimate.otherCharges).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2">
                   <span className="text-gray-600 font-medium">Making Charges ({Math.round(estimate.weight)}g × ₹{Math.round(estimate.makingChargePerGram).toLocaleString()}/gm + fixed)</span>
                   <span className="font-semibold text-purple-600">₹{Math.round(estimate.makingChargesAmount).toLocaleString()}</span>
@@ -185,6 +191,12 @@ const ProductDetail = () => {
                   <span className="text-gray-800 font-bold text-lg">Subtotal</span>
                   <span className="font-bold text-gray-900 text-lg">₹{Math.round(estimate.subtotal).toLocaleString()}</span>
                 </div>
+                {estimate.discountAmount > 0 && (
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-green-700 font-semibold">Product Discount ({estimate.discountPercentage}%)</span>
+                    <span className="font-semibold text-green-700">-₹{Math.round(estimate.discountAmount).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-2">
                   <span className="text-green-700 font-semibold">CGST + SGST ({estimate.gstRate}%)</span>
                   <span className="font-semibold text-green-700">₹{Math.round(estimate.gstAmount).toLocaleString()}</span>
@@ -235,7 +247,10 @@ const ProductDetail = () => {
                   addToCart({
                     ...product,
                     image: imageList[0] || getImageUrl(product.images || product.image || product.ImageURL),
-                    estimated_price: Math.round(estimate.estimatedTotal),
+                    estimated_price: estimate.amountAfterDiscount,
+                    gst_rate: estimate.gstRate,
+                    gst_amount: estimate.gstAmount,
+                    product_discount: estimate.discountAmount,
                     rate_per_gram: Math.round(estimate.rate),
                     purity_label: estimate.purityLabel,
                   });
@@ -250,7 +265,10 @@ const ProductDetail = () => {
                   addToWishlist({
                     ...product,
                     image: imageList[0] || getImageUrl(product.images || product.image || product.ImageURL),
-                    estimated_price: Math.round(estimate.estimatedTotal),
+                    estimated_price: estimate.amountAfterDiscount,
+                    gst_rate: estimate.gstRate,
+                    gst_amount: estimate.gstAmount,
+                    product_discount: estimate.discountAmount,
                     rate_per_gram: Math.round(estimate.rate),
                     purity_label: estimate.purityLabel,
                   });

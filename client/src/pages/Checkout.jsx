@@ -7,6 +7,7 @@ import { CreditCard, ArrowLeft, X, CheckCircle2, Check, Banknote, WalletCards, P
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import { calculateDiscountFromCoupon, loadAppliedCoupon, saveAppliedCoupon } from '../utils/coupons';
+import { getCartItemUnitPrice } from '../utils/pricing';
 
 const Checkout = () => {
   const { cart, cartTotal, clearCart } = useCart();
@@ -15,7 +16,7 @@ const Checkout = () => {
   const navigate = useNavigate();
 
   const displayCart = cart;
-  const subtotal = displayCart.reduce((sum, item) => sum + ((item.discount_price || item.price) * item.quantity), 0);
+  const subtotal = displayCart.reduce((sum, item) => sum + (getCartItemUnitPrice(item) * item.quantity), 0);
   const tax = (subtotal * gstRate) / 100;
   const shipping = 0;
   
@@ -564,7 +565,7 @@ const Checkout = () => {
                       <p className="text-xs text-gray-500">Qty: {item.quantity || 1}</p>
                     </div>
                     <p className="text-sm font-medium text-[#9D7E2A]">
-                      ₹{((item.discount_price || item.price) * (item.quantity || 1)).toLocaleString()}
+                      ₹{(getCartItemUnitPrice(item) * (item.quantity || 1)).toLocaleString()}
                     </p>
                   </div>
                 ))}

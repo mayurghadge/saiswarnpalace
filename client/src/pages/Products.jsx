@@ -519,9 +519,10 @@ const Products = () => {
                         addToWishlist({
                           ...product,
                           image: imageUrl,
-                          estimated_price: Math.round(
-                            estimate.estimatedTotal
-                          ),
+                          estimated_price: estimate.amountAfterDiscount,
+                          gst_rate: estimate.gstRate,
+                          gst_amount: estimate.gstAmount,
+                          product_discount: estimate.discountAmount,
                           rate_per_gram: Math.round(
                             estimate.rate
                           ),
@@ -611,9 +612,10 @@ const Products = () => {
                           addToCart({
                             ...product,
                             image: imageUrl,
-                            estimated_price: Math.round(
-                              estimate.estimatedTotal
-                            ),
+                            estimated_price: estimate.amountAfterDiscount,
+                            gst_rate: estimate.gstRate,
+                            gst_amount: estimate.gstAmount,
+                            product_discount: estimate.discountAmount,
                             rate_per_gram: Math.round(
                               estimate.rate
                             ),

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { calculateProductPrice } from '../utils/pricing';
 
 const GoldRateContext = createContext();
 const API_BASE =
@@ -83,36 +84,12 @@ export const GoldRateProvider = ({ children }) => {
   };
 
   const calculateProductEstimate = (product = {}) => {
-    const weight = Number(product.weight || 0);
-    const makingChargePerGram = Number(product.making_charges || 0);
-    const fixedMakingCharge = Number(product.fixed_making_charge || 0);
-    const diamondPrice = Number(product.diamond_price || 0);
-    const wastagePercentage = Number(product.wastage_percentage ?? 0);
     const { metal, rate, label } = getRateForPurity(product.purity);
 
-    const metalValue = rate * weight;
-    const wastageAmount = (metalValue * wastagePercentage) / 100;
-    const makingChargesAmount = makingChargePerGram * weight + fixedMakingCharge;
-    const subtotal = metalValue + wastageAmount + makingChargesAmount + diamondPrice;
-    const gstAmount = (subtotal * gstRate) / 100;
-    const estimatedTotal = subtotal + gstAmount;
-
     return {
+      ...calculateProductPrice(product, rate, gstRate),
       metal,
       purityLabel: label,
-      rate,
-      weight,
-      metalValue,
-      wastagePercentage,
-      wastageAmount,
-      makingChargePerGram,
-      fixedMakingCharge,
-      makingChargesAmount,
-      diamondPrice,
-      subtotal,
-      gstRate,
-      gstAmount,
-      estimatedTotal
     };
   };
 

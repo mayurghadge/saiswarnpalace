@@ -142,7 +142,7 @@ exports.createOrder = async (req, res) => {
     if (items && items.length > 0) {
       console.log('🛒 Inserting', items.length, 'order items');
       for (const item of items) {
-        const itemPrice = item.discount_price || item.price || 0;
+        const itemPrice = Number(item.price) || 0;
         console.log('📦 Adding item:', JSON.stringify(item, null, 2));
         await pool
           .request()
