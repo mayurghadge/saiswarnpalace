@@ -44,7 +44,7 @@ const Header = () => {
             
             {/* Gold Rate Dropdown */}
             {goldRateMenuOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white shadow-lg border border-gray-200 min-w-[250px] z-50">
+              <div className="absolute top-full left-0 mt-4 bg-white shadow-lg border border-gray-200 rounded-lg min-w-[250px] z-50">
                 <div className="py-2">
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Gold Price 22KT/1g</span>
