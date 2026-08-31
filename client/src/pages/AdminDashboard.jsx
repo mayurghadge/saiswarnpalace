@@ -625,6 +625,7 @@ const AdminDashboard = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weight: Number(productForm.weight),
+          purity: productForm.purity,
           diamond_price: Number(productForm.diamond_price || 0),
           fixed_making_charge: 0,
           other_charges: 0,
