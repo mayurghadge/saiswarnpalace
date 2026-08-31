@@ -158,10 +158,6 @@ function nullableInteger(value) {
 */
 exports.getCategories = async (req, res) => {
   try {
-    const selectedPurity = String(
-      req.body.purity || ''
-    ).trim();
-
     const pool = await connectDB();
 
     await ensureCategoryColumns(pool);
@@ -294,7 +290,6 @@ exports.getCategory = async (req, res) => {
     const result = await pool
       .request()
       .input('categoryId', sql.Int, categoryId)
-      .input('selectedPurity', sql.NVarChar, selectedPurity)
       .query(`
         SELECT
           c.Id AS id,
@@ -1032,6 +1027,10 @@ exports.calculateCategoryPrice = async (req, res) => {
       });
     }
 
+    const selectedPurity = String(
+      req.body.purity || ''
+    ).trim();
+
     const pool = await connectDB();
 
     await ensureCategoryColumns(pool);
@@ -1043,6 +1042,7 @@ exports.calculateCategoryPrice = async (req, res) => {
     const result = await pool
       .request()
       .input('categoryId', sql.Int, categoryId)
+      .input('selectedPurity', sql.NVarChar, selectedPurity)
       .query(`
         SELECT
           C.Id AS category_id,
