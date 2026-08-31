@@ -706,12 +706,16 @@ const AdminDashboard = () => {
         body: formData
       });
 
-      if (res.ok) {
-        toast.success(editingProduct ? 'Product updated' : 'Product added');
-        setShowProductModal(false);
-        setProductImageFile(null);
-        loadDashboardData();
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Unable to save product');
       }
+
+      toast.success(editingProduct ? 'Product updated' : 'Product added');
+      setShowProductModal(false);
+      setProductImageFile(null);
+      loadDashboardData();
     } catch (err) {
       console.error(err);
       toast.error('Failed');
@@ -740,17 +744,22 @@ const AdminDashboard = () => {
         formData.append('category_image', categoryImageFile);
       }
 
-      const res = await fetch(url, {
-        method, headers: { 'Authorization': `Bearer ${token}` }, body: formData,
+      const res = await adminFetch(url, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
       });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        toast.success(editingCategory ? 'Category updated' : 'Category added');
-        setShowCategoryModal(false);
-        setCategoryImageFile(null);
-        loadCategories();
-        loadDashboardData();
+      if (!res.ok) {
+        throw new Error(data.message || 'Unable to save category');
       }
+
+      toast.success(editingCategory ? 'Category updated' : 'Category added');
+      setShowCategoryModal(false);
+      setCategoryImageFile(null);
+      loadCategories();
+      loadDashboardData();
     } catch (err) {
       console.error(err);
       toast.error('Failed');
