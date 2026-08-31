@@ -90,7 +90,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 // Enforce HSTS in production
 if (process.env.NODE_ENV === 'production') {
