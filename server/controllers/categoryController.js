@@ -158,6 +158,10 @@ function nullableInteger(value) {
 */
 exports.getCategories = async (req, res) => {
   try {
+    const selectedPurity = String(
+      req.body.purity || ''
+    ).trim();
+
     const pool = await connectDB();
 
     await ensureCategoryColumns(pool);
@@ -290,6 +294,7 @@ exports.getCategory = async (req, res) => {
     const result = await pool
       .request()
       .input('categoryId', sql.Int, categoryId)
+      .input('selectedPurity', sql.NVarChar, selectedPurity)
       .query(`
         SELECT
           c.Id AS id,
@@ -1063,9 +1068,32 @@ exports.calculateCategoryPrice = async (req, res) => {
           (
             SELECT TOP 1 RatePerGram
             FROM dbo.GoldRates
-            WHERE UPPER(Purity) =
-              UPPER(C.Purity)
-            ORDER BY UpdatedAt DESC
+            WHERE
+              (
+                UPPER(C.Material) LIKE '%SILVER%'
+                AND (
+                  UPPER(Purity) LIKE '%SILVER%'
+                  OR UPPER(Purity) IN ('925', '999')
+                )
+              )
+              OR (
+                UPPER(C.Material) NOT LIKE '%SILVER%'
+                AND UPPER(Purity) =
+                  UPPER(
+                    CASE
+                      WHEN @selectedPurity <> ''
+                        THEN @selectedPurity
+                      ELSE C.Purity
+                    END
+                  )
+              )
+            ORDER BY
+              CASE
+                WHEN UPPER(Purity) =
+                  UPPER(@selectedPurity) THEN 0
+                ELSE 1
+              END,
+              UpdatedAt DESC
           ) AS rate_per_gram
 
         FROM dbo.Categories AS C
@@ -1082,7 +1110,7 @@ exports.calculateCategoryPrice = async (req, res) => {
     const category = result.recordset[0];
 
     const purity = String(
-      category.purity || '22K'
+      selectedPurity || category.purity || '22K'
     ).toUpperCase();
 
     let ratePerGram = Number(
@@ -1099,7 +1127,7 @@ exports.calculateCategoryPrice = async (req, res) => {
       } else if (purity === '18K') {
         ratePerGram = 11680;
       } else if (
-        purity === 'SILVER' ||
+        purity.includes('SILVER') ||
         purity === '925' ||
         purity === '999'
       ) {
