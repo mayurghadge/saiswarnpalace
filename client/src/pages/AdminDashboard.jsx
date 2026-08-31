@@ -29,6 +29,7 @@ const publicApiBaseUrl =
   import.meta.env.VITE_API_URL || '/api';
 const API_BASE_URL =
   import.meta.env.VITE_ADMIN_API_URL || `${publicApiBaseUrl.replace(/\/$/, '')}/admin`;
+const csrfApiBaseUrl = API_BASE_URL.replace(/\/admin\/?$/, '');
 const SERVER_BASE =
   import.meta.env.VITE_SERVER_URL || publicApiBaseUrl.replace(/\/api\/?$/, '');
 const ADMIN_AUTO_REFRESH_MS = 20000;
@@ -878,7 +879,7 @@ const AdminDashboard = () => {
     try {
       setIsSavingRates(true);
 
-      const csrfResponse = await fetch(`${publicApiBaseUrl}/csrf-token`, {
+      const csrfResponse = await fetch(`${csrfApiBaseUrl}/csrf-token`, {
         credentials: 'include',
         cache: 'no-store',
       });
