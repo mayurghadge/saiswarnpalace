@@ -31,7 +31,7 @@ const Header = () => {
   return (
     <header className="bg-white text-black sticky top-0 z-50 shadow-md">
       {/* Top Banner - Gold Rate */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="relative z-[1100] bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
           <div 
             className="flex items-center gap-2 relative"
@@ -44,7 +44,7 @@ const Header = () => {
             
             {/* Gold Rate Dropdown */}
             {goldRateMenuOpen && (
-              <div className="absolute top-full left-0 mt-4 bg-white shadow-lg border border-gray-200 rounded-lg min-w-[250px] z-50">
+              <div className="absolute top-full left-0 mt-4 bg-white shadow-lg border border-gray-200 rounded-lg min-w-[250px] z-[1101]">
                 <div className="py-2">
                   <div className="px-4 py-2 hover:bg-gray-50 flex items-center justify-between">
                     <span className="text-gray-700">Gold Price 22KT/1g</span>
