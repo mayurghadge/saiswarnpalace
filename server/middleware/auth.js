@@ -1,11 +1,23 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('JWT_SECRET must be set in production environment');
 }
+
+const getAllowedAdminEmails = () =>
+  (process.env.ALLOWED_ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+    .split(',')
+    .map((email) => String(email || '').trim().toLowerCase())
+    .filter(Boolean);
+
+const isAllowedAdminEmail = (email = '') => {
+  const allowedAdmins = getAllowedAdminEmails();
+  if (allowedAdmins.length === 0) return true;
+  return allowedAdmins.includes(String(email || '').trim().toLowerCase());
+};
 
 const auth = (req, res, next) => {
   try {
@@ -30,5 +42,11 @@ module.exports.requireAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access is required' });
   }
+
+  const adminEmail = String(req.user?.email || '').trim().toLowerCase();
+  if (!isAllowedAdminEmail(adminEmail)) {
+    return res.status(403).json({ message: 'This account is not authorized to access the admin panel.' });
+  }
+
   next();
 };

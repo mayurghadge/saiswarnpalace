@@ -4,6 +4,13 @@ import { toast } from 'react-hot-toast';
 import { Lock, User, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 
+const getAllowedAdminEmails = () => (
+  (import.meta.env.VITE_ALLOWED_ADMIN_EMAILS || import.meta.env.VITE_ADMIN_EMAIL || '')
+    .split(',')
+    .map((email) => String(email || '').trim().toLowerCase())
+    .filter(Boolean)
+);
+
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({
     email: '',
@@ -16,24 +23,47 @@ const AdminLogin = () => {
   useEffect(() => {
     const adminToken = localStorage.getItem('adminToken');
     const adminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+    const adminEmail = (localStorage.getItem('adminEmail') || '').toLowerCase();
+    const allowedAdmins = getAllowedAdminEmails();
 
-    if (adminToken && adminLoggedIn) {
+    if (adminToken && adminLoggedIn && (!allowedAdmins.length || allowedAdmins.includes(adminEmail))) {
       navigate('/admin', { replace: true });
+      return;
+    }
+
+    if (adminToken || adminLoggedIn || adminEmail) {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminLoggedIn');
+      localStorage.removeItem('adminEmail');
+      localStorage.removeItem('token');
     }
   }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const email = credentials.email.trim();
+    const allowedAdmins = getAllowedAdminEmails();
+
+    if (allowedAdmins.length > 0 && !allowedAdmins.includes(email.toLowerCase())) {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminLoggedIn');
+      localStorage.removeItem('adminEmail');
+      localStorage.removeItem('token');
+      toast.error('This account is not authorized to access the admin panel.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await api.post('/admin/login', {
-        email: credentials.email.trim(),
+        email,
         password: credentials.password.trim()
       });
-      
+
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('adminToken', response.data.token);
       localStorage.setItem('adminLoggedIn', 'true');
+      localStorage.setItem('adminEmail', (response.data.admin?.email || email).toLowerCase());
       toast.success('Admin login successful!');
       navigate('/admin');
     } catch (error) {

@@ -9,7 +9,7 @@ const registerValidation = [
 
 const loginValidation = [
   body('email').isEmail().normalizeEmail(),
-  body('password').isString().isLength({ min: 8 })
+  body('password').isString().notEmpty().trim()
 ];
 
 const verifyOtpValidation = [

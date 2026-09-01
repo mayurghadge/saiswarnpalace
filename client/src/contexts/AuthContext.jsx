@@ -101,9 +101,10 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        const message = data.message || (Array.isArray(data.errors) ? data.errors[0]?.msg : '') || 'Login failed';
+        throw new Error(message);
       }
 
       const { token, user } = data;

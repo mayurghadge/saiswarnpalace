@@ -15,7 +15,6 @@ const Login = () => {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Login successful!');
       navigate('/');
     } catch (err) {
       const friendlyMessage = err?.message?.includes('Database connection unavailable')

@@ -4,7 +4,7 @@ import { ShieldCheck, Truck, Gem, Sparkles } from 'lucide-react';
 
 const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
-const HOME_AUTO_REFRESH_MS = 20000;
+const HOME_AUTO_REFRESH_MS = 60_000;
 
 const fallbackImages = [
   'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_1600,h_900,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg',
@@ -72,7 +72,7 @@ const Home = () => {
     if (heroSlides.length <= 1) return undefined;
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroSlides.length);
-    }, 3500);
+    }, HOME_AUTO_REFRESH_MS);
     return () => clearInterval(timer);
   }, [heroSlides]);
 
@@ -80,7 +80,7 @@ const Home = () => {
     if (products.length <= 4) return undefined;
     const timer = setInterval(() => {
       setFeaturedStart((prev) => (prev + 1) % products.length);
-    }, 2800);
+    }, HOME_AUTO_REFRESH_MS);
     return () => clearInterval(timer);
   }, [products]);
 

@@ -19,8 +19,7 @@ const createProductsUrl = (filters = {}) => {
 const mainMenuFilters = (title) => {
   if (title === 'Gold') return { material: 'Gold' };
   if (title === 'Diamond') return { material: 'Diamond' };
-  if (title === 'Rings') return { category: 'Rings' };
-  if (title === 'Earrings') return { category: 'Earrings' };
+  if (title === 'Rings') return { material: 'Silver' };
   return {};
 };
 

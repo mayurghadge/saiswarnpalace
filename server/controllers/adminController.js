@@ -4,12 +4,22 @@ const jwt = require('jsonwebtoken');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 
-const fallbackAdminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+const normalizeAdminEmail = (value = '') => String(value || '').trim().toLowerCase();
+const fallbackAdminEmail = normalizeAdminEmail(process.env.ADMIN_EMAIL);
 const fallbackAdminPassword = process.env.ADMIN_PASSWORD;
+const allowedAdminEmails = (process.env.ALLOWED_ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+  .split(',')
+  .map(normalizeAdminEmail)
+  .filter(Boolean);
+
+const isAllowedAdminEmail = (email = '') => {
+  if (allowedAdminEmails.length === 0) return true;
+  return allowedAdminEmails.includes(normalizeAdminEmail(email));
+};
 
 const createAdminToken = (admin) => {
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
+  const jwtSecret = process.env.JWT_SECRET || 'dev-secret';
+  if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET must be set to sign admin tokens');
   }
 
@@ -29,12 +39,18 @@ const isFallbackAdminLogin = (email = '', password = '') => {
     return false;
   }
 
-  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const normalizedEmail = normalizeAdminEmail(email);
   const normalizedPassword = String(password || '');
+
+  if (!isAllowedAdminEmail(normalizedEmail)) {
+    return false;
+  }
+
   return normalizedEmail === fallbackAdminEmail && normalizedPassword === fallbackAdminPassword;
 };
 
 exports.isFallbackAdminLogin = isFallbackAdminLogin;
+exports.isAllowedAdminEmail = isAllowedAdminEmail;
 
 async function ensureVerificationDocumentsTable(pool) {
   await pool.request().query(`
@@ -577,6 +593,11 @@ exports.adminLogin = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
+    const normalizedEmail = normalizeAdminEmail(email);
+    if (!isAllowedAdminEmail(normalizedEmail)) {
+      return res.status(403).json({ message: 'This account is not authorized to access the admin panel.' });
+    }
+
     const fallbackLogin = isFallbackAdminLogin(email, password);
     if (fallbackLogin) {
       const token = createAdminToken({ id: 1, email: fallbackAdminEmail, name: 'Admin' });
@@ -628,6 +649,10 @@ exports.adminLogin = async (req, res) => {
 
     if (!admin || !admin.password) {
       return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    if (!isAllowedAdminEmail(admin.email)) {
+      return res.status(403).json({ message: 'This account is not authorized to access the admin panel.' });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);

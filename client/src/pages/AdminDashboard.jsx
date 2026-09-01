@@ -36,6 +36,13 @@ const ADMIN_AUTO_REFRESH_MS = 20000;
 const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
+const getAllowedAdminEmails = () => (
+  (import.meta.env.VITE_ALLOWED_ADMIN_EMAILS || import.meta.env.VITE_ADMIN_EMAIL || '')
+    .split(',')
+    .map((email) => String(email || '').trim().toLowerCase())
+    .filter(Boolean)
+);
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('adminToken');
   return {
@@ -62,11 +69,22 @@ const adminFetch = async (url, options = {}) => {
     headers['X-CSRF-Token'] = csrfData.csrfToken;
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     credentials: 'include',
     headers
   });
+
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminLoggedIn');
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('token');
+    window.location.assign('/admin-login');
+    throw new Error('Unauthorized admin session');
+  }
+
+  return response;
 };
 
 const getImageUrl = (url) => {
