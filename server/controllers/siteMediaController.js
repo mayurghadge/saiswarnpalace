@@ -73,7 +73,10 @@ exports.uploadFooterMedia = async (req, res) => {
   } catch (error) {
     if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     console.error('Upload Footer Media Error:', error);
-    res.status(500).json({ message: 'Unable to upload footer image' });
+    const detail = process.env.NODE_ENV === 'production'
+      ? 'Unable to upload footer image. Check the server configuration and try again.'
+      : error.message || 'Unable to upload footer image';
+    res.status(500).json({ message: detail });
   }
 };
 

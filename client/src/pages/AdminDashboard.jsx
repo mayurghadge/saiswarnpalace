@@ -663,7 +663,9 @@ const AdminDashboard = () => {
         body: formData,
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || 'Unable to upload footer image');
+      if (!response.ok) {
+        throw new Error(data.message || `Unable to upload footer image (HTTP ${response.status})`);
+      }
       setFooterMedia((current) => [data.media, ...current]);
       setFooterImageFile(null);
       setFooterImageError('');
