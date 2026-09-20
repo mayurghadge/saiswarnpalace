@@ -4,6 +4,7 @@ import { Facebook, Instagram, Twitter, Youtube } from '../lib/lucide-react-compa
 
 const Footer = () => {
   const [footerMedia, setFooterMedia] = useState([]);
+  const [footerIndex, setFooterIndex] = useState(0);
 
   useEffect(() => {
     fetch('/api/site-media')
@@ -11,6 +12,14 @@ const Footer = () => {
       .then((data) => setFooterMedia(data.media || []))
       .catch(() => setFooterMedia([]));
   }, []);
+
+  useEffect(() => {
+    if (footerMedia.length <= 1) return undefined;
+    const timer = setInterval(() => {
+      setFooterIndex((current) => (current + 1) % footerMedia.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [footerMedia.length]);
 
   return (
     <footer className="bg-[#c4a35a] text-white">
@@ -103,10 +112,26 @@ const Footer = () => {
 
       {footerMedia.length > 0 && (
         <div className="border-t border-white/30 px-5 py-8 sm:px-8 lg:px-12 xl:px-16">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {footerMedia.map((media) => (
-              <img key={media.id} src={media.imageUrl} alt="Sai Swarn Palace" className="aspect-video w-full rounded-lg object-cover" />
-            ))}
+          <div className="mx-auto max-w-5xl">
+            <img
+              key={footerMedia[footerIndex % footerMedia.length].id}
+              src={footerMedia[footerIndex % footerMedia.length].imageUrl}
+              alt="Sai Swarn Palace"
+              className="aspect-video w-full rounded-lg object-cover transition-opacity duration-700"
+            />
+            {footerMedia.length > 1 && (
+              <div className="mt-4 flex justify-center gap-2" aria-label="Footer photo slides">
+                {footerMedia.map((media, index) => (
+                  <button
+                    key={media.id}
+                    type="button"
+                    aria-label={`Show footer photo ${index + 1}`}
+                    onClick={() => setFooterIndex(index)}
+                    className={`h-2 rounded-full transition-all ${index === footerIndex % footerMedia.length ? 'w-8 bg-white' : 'w-2 bg-white/50'}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
