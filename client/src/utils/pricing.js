@@ -14,16 +14,13 @@ export const calculateProductPrice = (product = {}, rate = 0, gstRate = 0) => {
   const diamondPrice = Math.max(0, finiteNumber(product.diamond_price));
   const otherCharges = Math.max(0, finiteNumber(product.other_charges));
   const wastagePercentage = clampPercentage(product.wastage_percentage);
-  const discountPercentage = clampPercentage(product.discount_percentage);
   const safeGstRate = clampPercentage(gstRate);
 
   const metalValue = safeRate * weight;
   const wastageAmount = metalValue * (wastagePercentage / 100);
   const makingChargesAmount = makingChargePerGram * weight + fixedMakingCharge;
   const subtotal = metalValue + wastageAmount + makingChargesAmount + diamondPrice + otherCharges;
-  const discountAmount = subtotal * (discountPercentage / 100);
-  const amountAfterDiscount = Math.max(0, subtotal - discountAmount);
-  const gstAmount = amountAfterDiscount * (safeGstRate / 100);
+  const gstAmount = subtotal * (safeGstRate / 100);
 
   return {
     weight,
@@ -37,9 +34,9 @@ export const calculateProductPrice = (product = {}, rate = 0, gstRate = 0) => {
     diamondPrice,
     otherCharges,
     subtotal,
-    discountPercentage,
-    discountAmount,
-    amountAfterDiscount,
+    discountPercentage: 0,
+    discountAmount: 0,
+    amountAfterDiscount: subtotal,
     gstRate: safeGstRate,
     gstAmount,
     estimatedTotal: amountAfterDiscount + gstAmount,

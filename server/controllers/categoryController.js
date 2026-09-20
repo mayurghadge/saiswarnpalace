@@ -1184,21 +1184,14 @@ exports.calculateCategoryPrice = async (req, res) => {
       otherCharges;
 
     // 5. Discount
-    const discountAmount =
-      subtotal *
-      (discountPercentage / 100);
-
-    const amountAfterDiscount =
-      subtotal - discountAmount;
-
-    // 6. GST
+    // 5. GST
     const gstAmount =
-      amountAfterDiscount *
+      subtotal *
       (gstPercentage / 100);
 
-    // 7. Final amount
+    // 6. Final amount
     const finalPrice =
-      amountAfterDiscount + gstAmount;
+      subtotal + gstAmount;
 
     const roundMoney = (amount) =>
       Math.round(
@@ -1254,14 +1247,12 @@ exports.calculateCategoryPrice = async (req, res) => {
         subtotal:
           roundMoney(subtotal),
 
-        discount_percentage:
-          roundMoney(discountPercentage),
+        discount_percentage: 0,
 
-        discount_amount:
-          roundMoney(discountAmount),
+        discount_amount: 0,
 
         amount_after_discount:
-          roundMoney(amountAfterDiscount),
+          roundMoney(subtotal),
 
         gst_percentage:
           roundMoney(gstPercentage),

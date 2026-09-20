@@ -185,19 +185,13 @@ const ProductDetail = () => {
                   </div>
                 )}
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600 font-medium">Estimated Metal + Making Value</span>
+                  <span className="text-gray-600 font-medium">Subtotal (Metal + Wastage + Making + Stone)</span>
                   <span className="font-semibold text-gray-800">₹{Math.round(estimate.subtotal).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t-2 border-gray-300 mt-2">
                   <span className="text-gray-800 font-bold text-lg">Subtotal</span>
                   <span className="font-bold text-gray-900 text-lg">₹{Math.round(estimate.subtotal).toLocaleString()}</span>
                 </div>
-                {estimate.discountAmount > 0 && (
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-green-700 font-semibold">Product Discount ({estimate.discountPercentage}%)</span>
-                    <span className="font-semibold text-green-700">-₹{Math.round(estimate.discountAmount).toLocaleString()}</span>
-                  </div>
-                )}
                 <div className="flex justify-between items-center py-2">
                   <span className="text-green-700 font-semibold">CGST + SGST ({estimate.gstRate}%)</span>
                   <span className="font-semibold text-green-700">₹{Math.round(estimate.gstAmount).toLocaleString()}</span>
