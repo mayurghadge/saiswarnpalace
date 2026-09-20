@@ -33,7 +33,6 @@ const csrfApiBaseUrl = API_BASE_URL.replace(/\/admin\/?$/, '');
 const SERVER_BASE =
   import.meta.env.VITE_SERVER_URL || publicApiBaseUrl.replace(/\/api\/?$/, '');
 const ADMIN_AUTO_REFRESH_MS = 20000;
-const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_300,h_300,c_fill/v1780295778/chain_nxgghq.jpg';
 const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 const getAllowedAdminEmails = () => (
@@ -88,7 +87,7 @@ const adminFetch = async (url, options = {}) => {
 };
 
 const getImageUrl = (url) => {
-  if (!url) return CLOUDINARY_FALLBACK;
+  if (!url) return null;
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }

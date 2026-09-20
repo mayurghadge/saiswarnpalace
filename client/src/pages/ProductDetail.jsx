@@ -8,8 +8,6 @@ import { calculateDiscountFromCoupon, loadAppliedCoupon } from '../utils/coupons
 
 const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
-const CLOUDINARY_FALLBACK = 'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_1200,h_750,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg';
-
 const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart, addToWishlist } = useCart();
@@ -36,17 +34,15 @@ const ProductDetail = () => {
   }, [id]);
 
   const getImageUrl = (value) => {
-    const fallback = CLOUDINARY_FALLBACK;
-
-    if (!value) return fallback;
+    if (!value) return null;
     if (Array.isArray(value)) {
       const first = value.find((item) => typeof item === 'string' && item.trim());
       return getImageUrl(first);
     }
-    if (typeof value !== 'string') return fallback;
+    if (typeof value !== 'string') return null;
 
     const url = value.trim();
-    if (!url) return fallback;
+    if (!url) return null;
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image')) {
       return url;
     }
@@ -83,6 +79,7 @@ const ProductDetail = () => {
     }
     return [];
   })();
+  const currentImage = imageList[selectedImage] || null;
   const couponDiscount = calculateDiscountFromCoupon(appliedCoupon, estimate.estimatedTotal);
   const finalEstimateAfterCoupon = estimate.estimatedTotal - couponDiscount;
 
@@ -97,17 +94,21 @@ const ProductDetail = () => {
               onMouseLeave={() => setIsZoomed(false)}
               onMouseMove={handleImageMouseMove}
             >
-              <img
-                src={imageList[selectedImage] || getImageUrl(product.images || product.image || product.ImageURL)}
-                alt={product.name}
-                className="w-full h-[500px] object-cover"
-              />
-              {isZoomed && (
+              {currentImage ? (
+                <img
+                  src={currentImage}
+                  alt={product.name}
+                  className="w-full h-[500px] object-cover"
+                />
+              ) : (
+                <div className="h-[500px] bg-gray-100" aria-label="No product image uploaded" />
+              )}
+              {isZoomed && currentImage && (
                 <div
                   ref={zoomRef}
                   className="absolute top-0 left-0 w-full h-full bg-cover pointer-events-none"
                   style={{
-                    backgroundImage: `url(${imageList[selectedImage] || getImageUrl(product.images || product.image || product.ImageURL)})`,
+                    backgroundImage: `url(${currentImage})`,
                     backgroundSize: '200%',
                   }}
                 />

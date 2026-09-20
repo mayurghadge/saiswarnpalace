@@ -6,29 +6,22 @@ const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
 const HOME_AUTO_REFRESH_MS = 60_000;
 
-const fallbackImages = [
-  'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_1600,h_900,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg',
-  'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_1600,h_900,c_fill/v1780295778/chain_nxgghq.jpg',
-  'https://res.cloudinary.com/dayhebhj7/image/fetch/f_auto,q_auto,w_1600,h_900,c_fill/https://images.unsplash.com/photo-1515562141207-7a88fb7ce338',
-  'https://res.cloudinary.com/dayhebhj7/image/fetch/f_auto,q_auto,w_1600,h_900,c_fill/https://images.unsplash.com/photo-1617038220319-276d3cfab638'
-];
-
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [featuredStart, setFeaturedStart] = useState(0);
 
-  const getImageUrl = (value, fallback = fallbackImages[0]) => {
-    if (!value) return fallback;
+  const getImageUrl = (value) => {
+    if (!value) return null;
     if (Array.isArray(value)) {
       const firstValid = value.find((item) => typeof item === 'string' && item.trim());
-      return getImageUrl(firstValid, fallback);
+      return getImageUrl(firstValid);
     }
-    if (typeof value !== 'string') return fallback;
+    if (typeof value !== 'string') return null;
 
     const raw = value.trim();
-    if (!raw) return fallback;
+    if (!raw) return null;
     if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image')) {
       return raw;
     }
@@ -65,7 +58,7 @@ const Home = () => {
       .filter(Boolean)
       .slice(0, 5);
 
-    return fromProducts.length > 0 ? fromProducts : fallbackImages;
+    return fromProducts.length > 0 ? fromProducts : [null];
   }, [products]);
 
   useEffect(() => {
@@ -94,17 +87,19 @@ const Home = () => {
     <div className="bg-stone-50">
       <section className="relative h-[72vh] min-h-[460px] overflow-hidden">
         {heroSlides.map((slide, index) => (
-          <img
-            key={`${slide}-${index}`}
-            src={slide}
-            alt="Jewellery collection"
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-              heroIndex === index ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
+          slide && (
+            <img
+              key={`${slide}-${index}`}
+              src={slide}
+              alt="Jewellery collection"
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+                heroIndex === index ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          )
         ))}
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
-        <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 flex h-full w-full items-center px-5 sm:px-8 lg:px-12 xl:px-16">
           <div className="max-w-2xl text-white">
             <p className="mb-3 inline-block rounded-full border border-white/40 px-4 py-1 text-sm tracking-[0.2em]">
               SAI SWARN PALACE
@@ -128,14 +123,14 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+      <section className="w-full px-5 py-12 sm:px-8 sm:py-14 lg:px-12 xl:px-16">
         <div className="mb-8 flex items-end justify-between">
           <div>
             <p className="text-sm font-semibold tracking-[0.2em] text-[#9D7E2A]">LIVE CATEGORIES</p>
             <h2 className="mt-2 text-3xl font-bold text-stone-900">Shop By Collection</h2>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {categories.slice(0, 8).map((category) => (
             <Link
               key={category.id}
@@ -143,11 +138,13 @@ const Home = () => {
               className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-stone-200 transition hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="relative h-56 overflow-hidden">
-                <img
-                  src={getImageUrl(category.image || category.ImageURL || category.images, fallbackImages[1])}
-                  alt={category.name}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                />
+                {getImageUrl(category.image || category.ImageURL || category.images) && (
+                  <img
+                    src={getImageUrl(category.image || category.ImageURL || category.images)}
+                    alt={category.name}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
                 <p className="absolute bottom-4 left-4 text-xl font-bold text-white">{category.name}</p>
               </div>
@@ -156,7 +153,7 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+      <section className="w-full px-5 pb-12 sm:px-8 sm:pb-14 lg:px-12 xl:px-16">
         <div className="mb-8 flex items-end justify-between">
           <div>
             <p className="text-sm font-semibold tracking-[0.2em] text-[#9D7E2A]">AUTO CHANGING</p>
@@ -166,7 +163,7 @@ const Home = () => {
             View all products
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
           {featuredProducts.map((product) => (
             <Link
               key={product.id}
@@ -174,11 +171,15 @@ const Home = () => {
               className="group rounded-2xl bg-white p-3 shadow-sm ring-1 ring-stone-200 transition hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="overflow-hidden rounded-xl">
-                <img
-                  src={getImageUrl(product.images || product.image || product.ImageURL, fallbackImages[2])}
-                  alt={product.name}
-                  className="h-64 w-full object-cover transition duration-500 group-hover:scale-110"
-                />
+                {getImageUrl(product.images || product.image || product.ImageURL) ? (
+                  <img
+                    src={getImageUrl(product.images || product.image || product.ImageURL)}
+                    alt={product.name}
+                    className="h-64 w-full object-cover transition duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="h-64 bg-stone-100" aria-label="No product image uploaded" />
+                )}
               </div>
               <div className="p-3">
                 <p className="line-clamp-2 text-base font-semibold text-stone-900">{product.name}</p>
@@ -190,7 +191,7 @@ const Home = () => {
       </section>
 
       <section className="border-y border-stone-200 bg-white">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4 sm:px-6 lg:px-8">
+        <div className="grid w-full grid-cols-1 gap-8 px-5 py-10 sm:grid-cols-2 sm:px-8 sm:py-12 lg:grid-cols-4 lg:px-12 xl:px-16">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-1 text-[#9D7E2A]" />
             <div>

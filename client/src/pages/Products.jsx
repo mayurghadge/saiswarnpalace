@@ -7,9 +7,6 @@ import { toast } from 'react-hot-toast';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-const CLOUDINARY_FALLBACK =
-  'https://res.cloudinary.com/dayhebhj7/image/upload/f_auto,q_auto,w_800,h_800,c_fill/v1780553055/IMG-20230905-WA0018_khsrzn.jpg';
-
 const normalizeValue = (value = '') =>
   String(value)
     .trim()
@@ -64,7 +61,7 @@ const Products = () => {
   const { calculateProductEstimate } = useGoldRate();
 
   const getImageUrl = (value) => {
-    if (!value) return CLOUDINARY_FALLBACK;
+    if (!value) return null;
 
     if (Array.isArray(value)) {
       const firstImage = value.find(
@@ -75,12 +72,12 @@ const Products = () => {
     }
 
     if (typeof value !== 'string') {
-      return CLOUDINARY_FALLBACK;
+      return null;
     }
 
     const url = value.trim();
 
-    if (!url) return CLOUDINARY_FALLBACK;
+    if (!url) return null;
 
     if (
       url.startsWith('http://') ||
@@ -500,18 +497,15 @@ const Products = () => {
                   className="bg-white rounded-xl shadow-lg overflow-hidden transition hover:shadow-xl hover:-translate-y-1"
                 >
                   <div className="relative">
-                    <img
-                      src={imageUrl}
-                      alt={productName}
-                      className="w-full h-64 object-cover"
-                      onError={(event) => {
-                        event.currentTarget.onerror =
-                          null;
-
-                        event.currentTarget.src =
-                          CLOUDINARY_FALLBACK;
-                      }}
-                    />
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={productName}
+                        className="w-full h-64 object-cover"
+                      />
+                    ) : (
+                      <div className="h-64 bg-gray-100" aria-label="No product image uploaded" />
+                    )}
 
                     <button
                       type="button"
