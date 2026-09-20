@@ -3,8 +3,8 @@ const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 const { imageSize } = require('image-size');
 
-const FOOTER_IMAGE_WIDTH = 1200;
-const FOOTER_IMAGE_HEIGHT = 400;
+const FOOTER_IMAGE_WIDTH = 1280;
+const FOOTER_IMAGE_HEIGHT = 720;
 
 async function ensureSiteMediaTable(pool) {
   await pool.request().query(`

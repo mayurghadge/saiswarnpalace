@@ -63,7 +63,7 @@ const adminFetch = async (url, options = {}) => {
     const csrfData = await csrfResponse.json().catch(() => ({}));
 
     if (!csrfResponse.ok || !csrfData.csrfToken) {
-      throw new Error(csrfData.message || 'Unable to secure this request');
+      throw new Error(csrfData.message || `Unable to secure this request (HTTP ${csrfResponse.status})`);
     }
 
     headers['X-CSRF-Token'] = csrfData.csrfToken;
@@ -94,6 +94,38 @@ const getImageUrl = (url) => {
   }
   return `${SERVER_BASE}/${url}`;
 };
+
+const prepareFooterImage = (file) => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file);
+  const image = new Image();
+
+  image.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const sourceRatio = image.width / image.height;
+    const targetRatio = 1280 / 720;
+    const sourceWidth = sourceRatio > targetRatio ? image.height * targetRatio : image.width;
+    const sourceHeight = sourceRatio > targetRatio ? image.height : image.width / targetRatio;
+    const sourceX = (image.width - sourceWidth) / 2;
+    const sourceY = (image.height - sourceHeight) / 2;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, 1280, 720);
+    canvas.toBlob((blob) => {
+      URL.revokeObjectURL(objectUrl);
+      if (!blob) {
+        reject(new Error('Unable to prepare this image'));
+        return;
+      }
+      resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.92);
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(objectUrl);
+    reject(new Error('Unable to read this image'));
+  };
+  image.src = objectUrl;
+});
 
 const getCouponStatusMeta = (coupon) => {
   const now = new Date();
@@ -360,6 +392,7 @@ const AdminDashboard = () => {
   const [footerMedia, setFooterMedia] = useState([]);
   const [footerImageFile, setFooterImageFile] = useState(null);
   const [footerImageError, setFooterImageError] = useState('');
+  const [footerImageDimensions, setFooterImageDimensions] = useState(null);
   const [isUploadingFooterImage, setIsUploadingFooterImage] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSavingRates, setIsSavingRates] = useState(false);
@@ -615,8 +648,8 @@ const AdminDashboard = () => {
       toast.error('Choose a footer image first');
       return;
     }
-    if (footerImageFile.width !== 1200 || footerImageFile.height !== 400) {
-      toast.error('Footer photo must be exactly 1200 x 400 pixels');
+    if (footerImageDimensions?.width !== 1280 || footerImageDimensions?.height !== 720) {
+      toast.error('Footer photo must be exactly 1280 x 720 pixels');
       return;
     }
 
@@ -634,11 +667,28 @@ const AdminDashboard = () => {
       setFooterMedia((current) => [data.media, ...current]);
       setFooterImageFile(null);
       setFooterImageError('');
+      setFooterImageDimensions(null);
       toast.success('Footer image uploaded');
     } catch (error) {
       toast.error(error.message || 'Unable to upload footer image');
     } finally {
       setIsUploadingFooterImage(false);
+    }
+  };
+
+  const handleFooterImageSelect = async (event) => {
+    const selectedFile = event.target.files?.[0] || null;
+    setFooterImageError('');
+    setFooterImageDimensions(null);
+    setFooterImageFile(null);
+    if (!selectedFile) return;
+
+    try {
+      const preparedFile = await prepareFooterImage(selectedFile);
+      setFooterImageFile(preparedFile);
+      setFooterImageDimensions({ width: 1280, height: 720 });
+    } catch (error) {
+      setFooterImageError(error.message || 'Unable to prepare this image');
     }
   };
 
@@ -1604,22 +1654,7 @@ const AdminDashboard = () => {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] || null;
-                        setFooterImageFile(file);
-                        if (!file) {
-                          setFooterImageError('');
-                          return;
-                        }
-                        const image = new Image();
-                        image.onload = () => {
-                          setFooterImageError(image.width === 1200 && image.height === 400
-                            ? ''
-                            : `This photo is ${image.width} x ${image.height}. It must be exactly 1200 x 400 pixels.`);
-                        };
-                        image.onerror = () => setFooterImageError('Unable to read this image. Please choose a JPG, PNG, or WEBP file.');
-                        image.src = URL.createObjectURL(file);
-                      }}
+                      onChange={handleFooterImageSelect}
                       className="block w-full rounded-lg border border-gray-300 p-3 text-sm"
                     />
                   </label>
@@ -1628,7 +1663,7 @@ const AdminDashboard = () => {
                     {isUploadingFooterImage ? 'Uploading...' : 'Upload Photo'}
                   </button>
                 </form>
-                <p className="mt-2 text-xs text-gray-500">Required exact size: 1200 x 400 px (3:1 banner).</p>
+                <p className="mt-2 text-xs text-gray-500">Photo is automatically center-cropped to 1280 x 720 px (16:9) before upload.</p>
                 {footerImageError && <p className="mt-2 text-sm font-medium text-red-600">{footerImageError}</p>}
                 {footerMedia.length > 0 ? (
                   <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

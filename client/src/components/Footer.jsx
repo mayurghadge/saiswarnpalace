@@ -105,7 +105,7 @@ const Footer = () => {
         <div className="border-t border-white/30 px-5 py-8 sm:px-8 lg:px-12 xl:px-16">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {footerMedia.map((media) => (
-              <img key={media.id} src={media.imageUrl} alt="Sai Swarn Palace" className="aspect-[3/1] w-full rounded-lg object-cover" />
+              <img key={media.id} src={media.imageUrl} alt="Sai Swarn Palace" className="aspect-video w-full rounded-lg object-cover" />
             ))}
           </div>
         </div>
