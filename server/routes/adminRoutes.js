@@ -6,6 +6,7 @@ const authMiddleware = require('../middleware/auth');
 const { requireCsrf } = require('../middleware/csrf');
 const requireAdmin = authMiddleware.requireAdmin;
 const upload = require('../config/upload');
+const siteMediaController = require('../controllers/siteMediaController');
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -27,6 +28,9 @@ router.use(requireCsrf);
 // Dashboard
 router.get('/dashboard', adminController.getDashboardStats);
 router.get('/reports', adminController.getReports);
+router.get('/site-media', siteMediaController.getAdminMedia);
+router.post('/site-media/footer', upload.single('footer_image'), siteMediaController.uploadFooterMedia);
+router.delete('/site-media/footer/:id', siteMediaController.deleteFooterMedia);
 router.get('/refresh-tokens', adminController.listRefreshTokens);
 
 // Users

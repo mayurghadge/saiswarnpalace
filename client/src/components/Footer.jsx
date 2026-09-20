@@ -1,7 +1,17 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Twitter, Youtube } from '../lib/lucide-react-compat';
 
 const Footer = () => {
+  const [footerMedia, setFooterMedia] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/site-media')
+      .then((response) => response.ok ? response.json() : { media: [] })
+      .then((data) => setFooterMedia(data.media || []))
+      .catch(() => setFooterMedia([]));
+  }, []);
+
   return (
     <footer className="bg-[#c4a35a] text-white">
       {/* Locate Store Section */}
@@ -90,6 +100,16 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      {footerMedia.length > 0 && (
+        <div className="border-t border-white/30 px-5 py-8 sm:px-8 lg:px-12 xl:px-16">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {footerMedia.map((media) => (
+              <img key={media.id} src={media.imageUrl} alt="Sai Swarn Palace" className="aspect-[3/1] w-full rounded-lg object-cover" />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Copyright */}
       <div className="border-t border-white/30 px-5 py-4 text-center text-xs sm:text-sm">

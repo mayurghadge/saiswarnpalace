@@ -21,7 +21,8 @@ import {
   BarChart3,
   IndianRupee,
   CalendarDays,
-  RefreshCw
+  RefreshCw,
+  Upload
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -356,6 +357,10 @@ const AdminDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [reports, setReports] = useState({ summary: {}, dailyReports: [], userReports: [] });
+  const [footerMedia, setFooterMedia] = useState([]);
+  const [footerImageFile, setFooterImageFile] = useState(null);
+  const [footerImageError, setFooterImageError] = useState('');
+  const [isUploadingFooterImage, setIsUploadingFooterImage] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSavingRates, setIsSavingRates] = useState(false);
   const [rateForm, setRateForm] = useState({
@@ -521,6 +526,7 @@ const AdminDashboard = () => {
         ['contacts', `${API_BASE_URL}/contacts`],
         ['coupons', `${API_BASE_URL}/coupons`],
         ['reports', `${API_BASE_URL}/reports`],
+        ['siteMedia', `${API_BASE_URL}/site-media`],
       ];
 
       const results = await Promise.allSettled(
@@ -579,6 +585,7 @@ const AdminDashboard = () => {
       if (dataByKey.contacts) setContacts(dataByKey.contacts.contacts || []);
       if (dataByKey.coupons) setCoupons(dataByKey.coupons.coupons || []);
       if (dataByKey.reports) setReports(dataByKey.reports);
+      if (dataByKey.siteMedia) setFooterMedia(dataByKey.siteMedia.media || []);
 
       if (Object.keys(dataByKey).length > 0) {
         setLastRefreshedAt(new Date());
@@ -601,6 +608,52 @@ const AdminDashboard = () => {
       setIsRefreshing(false);
     }
   }, [navigate, setGoldRate18k, setGoldRate22k, setGoldRate24k, setSilverRate, setGstRate]);
+
+  const handleUploadFooterImage = async (event) => {
+    event.preventDefault();
+    if (!footerImageFile) {
+      toast.error('Choose a footer image first');
+      return;
+    }
+    if (footerImageFile.width !== 1200 || footerImageFile.height !== 400) {
+      toast.error('Footer photo must be exactly 1200 x 400 pixels');
+      return;
+    }
+
+    try {
+      setIsUploadingFooterImage(true);
+      const formData = new FormData();
+      formData.append('footer_image', footerImageFile);
+      const response = await adminFetch(`${API_BASE_URL}/site-media/footer`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` },
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Unable to upload footer image');
+      setFooterMedia((current) => [data.media, ...current]);
+      setFooterImageFile(null);
+      setFooterImageError('');
+      toast.success('Footer image uploaded');
+    } catch (error) {
+      toast.error(error.message || 'Unable to upload footer image');
+    } finally {
+      setIsUploadingFooterImage(false);
+    }
+  };
+
+  const handleDeleteFooterImage = async (id) => {
+    try {
+      await adminFetch(`${API_BASE_URL}/site-media/footer/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      setFooterMedia((current) => current.filter((media) => media.id !== id));
+      toast.success('Footer image deleted');
+    } catch (error) {
+      toast.error(error.message || 'Unable to delete footer image');
+    }
+  };
 
   const loadCategories = useCallback(async () => {
     try {
@@ -1542,6 +1595,54 @@ const AdminDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold mb-8">Settings</h1>
             <div className="space-y-6">
+              <div className="rounded-2xl bg-white p-8 shadow-lg">
+                <h2 className="mb-2 text-2xl font-bold">Footer Photos</h2>
+                <p className="mb-6 text-gray-500">Upload photos that will appear in the footer on the user website.</p>
+                <form onSubmit={handleUploadFooterImage} className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                  <label className="flex-1">
+                    <span className="mb-2 block text-sm font-semibold text-gray-700">Choose footer photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        setFooterImageFile(file);
+                        if (!file) {
+                          setFooterImageError('');
+                          return;
+                        }
+                        const image = new Image();
+                        image.onload = () => {
+                          setFooterImageError(image.width === 1200 && image.height === 400
+                            ? ''
+                            : `This photo is ${image.width} x ${image.height}. It must be exactly 1200 x 400 pixels.`);
+                        };
+                        image.onerror = () => setFooterImageError('Unable to read this image. Please choose a JPG, PNG, or WEBP file.');
+                        image.src = URL.createObjectURL(file);
+                      }}
+                      className="block w-full rounded-lg border border-gray-300 p-3 text-sm"
+                    />
+                  </label>
+                  <button type="submit" disabled={isUploadingFooterImage || Boolean(footerImageError)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#9D7E2A] px-6 py-3 font-semibold text-white hover:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60">
+                    <Upload size={18} />
+                    {isUploadingFooterImage ? 'Uploading...' : 'Upload Photo'}
+                  </button>
+                </form>
+                <p className="mt-2 text-xs text-gray-500">Required exact size: 1200 x 400 px (3:1 banner).</p>
+                {footerImageError && <p className="mt-2 text-sm font-medium text-red-600">{footerImageError}</p>}
+                {footerMedia.length > 0 ? (
+                  <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    {footerMedia.map((media) => (
+                      <div key={media.id} className="relative overflow-hidden rounded-lg border border-gray-200">
+                        <img src={media.imageUrl} alt="Footer preview" className="h-32 w-full object-cover" />
+                        <button type="button" onClick={() => handleDeleteFooterImage(media.id)} className="absolute right-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700">Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-6 text-sm text-gray-500">No footer photos uploaded yet.</p>
+                )}
+              </div>
               <div className="bg-white rounded-2xl shadow-lg p-8">
                 <h2 className="text-2xl font-bold mb-6">Gold & Silver Rates</h2>
                 <div className="grid md:grid-cols-4 gap-8">
@@ -1607,7 +1708,21 @@ const AdminDashboard = () => {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">HUID Hallmark</label><input type="text" value={productForm.huid_hallmark} onChange={e=> setProductForm({...productForm, huid_hallmark: e.target.value})} className="w-full px-4 py-2 border rounded-lg" placeholder="Ex: HUID123456" /></div>
               </div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Image URL</label><input type="text" value={productForm.images} onChange={e=> setProductForm({...productForm, images: e.target.value})} className="w-full px-4 py-2 border rounded-lg mb-3" /></div>
-              <div><label className="block text-sm font-semibold text-gray-700 mb-1">Upload Image</label><input type="file" accept="image/*" onChange={e=> setProductImageFile(e.target.files[0])} className="w-full" />{productImageFile && <img src={URL.createObjectURL(productImageFile)} alt="Preview" className="mt-3 w-32 h-32 object-cover rounded" />}</div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Product Photo</label>
+                <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#9D7E2A]/50 bg-[#9D7E2A]/5 px-4 py-5 text-center transition hover:border-[#9D7E2A] hover:bg-[#9D7E2A]/10">
+                  <Upload size={24} className="mb-2 text-[#9D7E2A]" />
+                  <span className="text-sm font-semibold text-gray-700">Choose a product photo</span>
+                  <span className="mt-1 text-xs text-gray-500">JPG, PNG, WEBP up to 10 MB</span>
+                  <input type="file" accept="image/*" onChange={e => setProductImageFile(e.target.files?.[0] || null)} className="sr-only" />
+                </label>
+                {productImageFile && (
+                  <div className="mt-3 flex items-center gap-3 rounded-lg bg-gray-50 p-2">
+                    <img src={URL.createObjectURL(productImageFile)} alt="Product preview" className="h-16 w-16 rounded object-cover" />
+                    <span className="min-w-0 truncate text-sm text-gray-700">{productImageFile.name}</span>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-3 pt-6">
                 <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="flex-1 px-6 py-3 bg-[#9D7E2A] text-white rounded-lg font-semibold hover:bg-yellow-700">Save</button>
@@ -1643,7 +1758,21 @@ const AdminDashboard = () => {
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Calculation Type</label><select value={categoryForm.calculation_type} onChange={e=>setCategoryForm({...categoryForm, calculation_type:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="WEIGHT_BASED">Weight Based</option></select></div>
               </div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Image URL</label><input type="text" value={categoryForm.image} onChange={e=> setCategoryForm({...categoryForm, image: e.target.value})} className="w-full px-4 py-2 border rounded-lg mb-3" /></div>
-              <div><label className="block text-sm font-semibold text-gray-700 mb-1">Upload Image</label><input type="file" accept="image/*" onChange={e=> setCategoryImageFile(e.target.files[0])} className="w-full" />{categoryImageFile && <img src={URL.createObjectURL(categoryImageFile)} alt="Preview" className="mt-3 w-32 h-32 object-cover rounded" />}</div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Upload Category Photo</label>
+                <label className="flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#9D7E2A]/50 bg-[#9D7E2A]/5 px-4 py-5 text-center transition hover:border-[#9D7E2A] hover:bg-[#9D7E2A]/10">
+                  <Upload size={24} className="mb-2 text-[#9D7E2A]" />
+                  <span className="text-sm font-semibold text-gray-700">Choose a category photo</span>
+                  <span className="mt-1 text-xs text-gray-500">JPG, PNG, WEBP up to 10 MB</span>
+                  <input type="file" accept="image/*" onChange={e => setCategoryImageFile(e.target.files?.[0] || null)} className="sr-only" />
+                </label>
+                {categoryImageFile && (
+                  <div className="mt-3 flex items-center gap-3 rounded-lg bg-gray-50 p-2">
+                    <img src={URL.createObjectURL(categoryImageFile)} alt="Category preview" className="h-16 w-16 rounded object-cover" />
+                    <span className="min-w-0 truncate text-sm text-gray-700">{categoryImageFile.name}</span>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-3 pt-6">
                 <button type="button" onClick={() => setShowCategoryModal(false)} className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="flex-1 px-6 py-3 bg-[#9D7E2A] text-white rounded-lg font-semibold hover:bg-yellow-700">Save</button>

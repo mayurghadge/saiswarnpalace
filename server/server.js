@@ -225,6 +225,7 @@ const originValidation = require(
 );
 
 const adminRoutes = require('./routes/adminRoutes');
+const siteMediaController = require('./controllers/siteMediaController');
 
 // --------------------------------------------------
 // DATABASE STATUS
@@ -301,6 +302,7 @@ app.get('/api/products', productController.getProducts);
 app.get('/api/products/:id', productController.getProduct);
 
 app.get('/api/gold-rates', productController.getGoldRates);
+app.get('/api/site-media', siteMediaController.getPublicMedia);
 
 // --------------------------------------------------
 // PUBLIC CATEGORY ROUTES

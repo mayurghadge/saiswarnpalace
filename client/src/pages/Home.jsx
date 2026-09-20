@@ -5,6 +5,7 @@ import { ShieldCheck, Truck, Gem, Sparkles } from 'lucide-react';
 const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
 const HOME_AUTO_REFRESH_MS = 60_000;
+const HERO_IMAGE = 'https://res.cloudinary.com/dayhebhj7/image/upload/v1784291772/ChatGPT_Image_Jun_19_2026_09_44_46_PM_8c315e31-6a78-4077-bea2-73f5eea3f101_wsvhox.png';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -58,7 +59,7 @@ const Home = () => {
       .filter(Boolean)
       .slice(0, 5);
 
-    return fromProducts.length > 0 ? fromProducts : [null];
+    return [HERO_IMAGE, ...fromProducts.filter((image) => image !== HERO_IMAGE)];
   }, [products]);
 
   useEffect(() => {
