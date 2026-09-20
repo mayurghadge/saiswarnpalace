@@ -117,7 +117,11 @@ if (process.env.NODE_ENV === 'production') {
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
-  skip: (req) => req.path === '/api/csrf-token',
+  skip: (req) => (
+    req.path === '/api/csrf-token' ||
+    req.path.startsWith('/api/site-media') ||
+    req.path.startsWith('/api/admin/site-media')
+  ),
   standardHeaders: true,
   legacyHeaders: false
 });

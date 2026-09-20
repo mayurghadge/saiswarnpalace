@@ -5,11 +5,10 @@ import { ShieldCheck, Truck, Gem, Sparkles } from 'lucide-react';
 const API_BASE =
   import.meta.env.VITE_API_URL || '/api';
 const HOME_AUTO_REFRESH_MS = 60_000;
-const HERO_IMAGE = 'https://res.cloudinary.com/dayhebhj7/image/upload/v1784291772/ChatGPT_Image_Jun_19_2026_09_44_46_PM_8c315e31-6a78-4077-bea2-73f5eea3f101_wsvhox.png';
-
 const Home = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [siteMedia, setSiteMedia] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [featuredStart, setFeaturedStart] = useState(0);
 
@@ -35,16 +34,19 @@ const Home = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [productsRes, categoriesRes] = await Promise.all([
+        const [productsRes, categoriesRes, mediaRes] = await Promise.all([
           fetch(`${API_BASE}/products`),
-          fetch(`${API_BASE}/categories`)
+          fetch(`${API_BASE}/categories`),
+          fetch(`${API_BASE}/site-media`)
         ]);
 
         const productsData = await productsRes.json();
         const categoriesData = await categoriesRes.json();
+        const mediaData = await mediaRes.json();
 
         setProducts(productsData.products || []);
         setCategories(categoriesData.categories || []);
+        setSiteMedia(mediaData.media || []);
       } catch (error) {
         console.error('Failed to load home data:', error);
       }
@@ -54,13 +56,8 @@ const Home = () => {
   }, []);
 
   const heroSlides = useMemo(() => {
-    const fromProducts = products
-      .map((product) => getImageUrl(product.images || product.image || product.ImageURL))
-      .filter(Boolean)
-      .slice(0, 5);
-
-    return [HERO_IMAGE, ...fromProducts.filter((image) => image !== HERO_IMAGE)];
-  }, [products]);
+    return siteMedia.map((media) => getImageUrl(media.imageUrl)).filter(Boolean);
+  }, [siteMedia]);
 
   useEffect(() => {
     if (heroSlides.length <= 1) return undefined;
@@ -87,7 +84,7 @@ const Home = () => {
   return (
     <div className="bg-stone-50">
       <section className="relative h-[72vh] min-h-[460px] overflow-hidden">
-        {heroSlides.map((slide, index) => (
+        {heroSlides.length > 0 && heroSlides.map((slide, index) => (
           slide && (
             <img
               key={`${slide}-${index}`}
@@ -99,7 +96,7 @@ const Home = () => {
             />
           )
         ))}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
+        <div className={`absolute inset-0 ${heroSlides.length > 0 ? 'bg-gradient-to-r from-black/70 via-black/40 to-black/20' : 'bg-stone-800'}`} />
         <div className="relative z-10 flex h-full w-full items-center px-5 sm:px-8 lg:px-12 xl:px-16">
           <div className="max-w-2xl text-white">
             <p className="mb-3 inline-block rounded-full border border-white/40 px-4 py-1 text-sm tracking-[0.2em]">

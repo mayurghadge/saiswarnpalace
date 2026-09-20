@@ -17,7 +17,7 @@ const Footer = () => {
     if (footerMedia.length <= 1) return undefined;
     const timer = setInterval(() => {
       setFooterIndex((current) => (current + 1) % footerMedia.length);
-    }, 5000);
+    }, 3000);
     return () => clearInterval(timer);
   }, [footerMedia.length]);
 

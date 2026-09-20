@@ -32,7 +32,7 @@ const Header = () => {
     <header className="bg-white text-black sticky top-0 z-50 shadow-md">
       {/* Top Banner - Gold Rate */}
       <div className="relative z-[1100] bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
+        <div className="w-full px-3 py-2 flex items-center justify-between text-xs sm:px-6 sm:text-sm lg:px-10">
           <div 
             className="flex items-center gap-2 relative"
             onMouseEnter={() => setGoldRateMenuOpen(true)}
@@ -101,11 +101,11 @@ const Header = () => {
 
       {/* Main Header */}
       <div className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20 md:h-24">
+        <div className="w-full px-3 sm:px-6 lg:px-10">
+          <div className="flex h-16 items-center justify-between gap-2 sm:h-20 md:h-24">
             {/* Logo 1 */}
             <Link to="/" className="flex items-center gap-2">
-              <img src="https://res.cloudinary.com/dayhebhj7/image/upload/v1782470637/ssp_logo_jub3xa.png" alt="SAI SWARN PALACE Logo" className="h-12 sm:h-16 md:h-20 w-auto" />
+              <img src="https://res.cloudinary.com/dayhebhj7/image/upload/v1782470637/ssp_logo_jub3xa.png" alt="SAI SWARN PALACE Logo" className="h-10 w-auto sm:h-16 md:h-20" />
             </Link>
             {/* Logo 2 */}
             <Link to="/" className="hidden lg:flex items-center gap-2">
@@ -127,7 +127,7 @@ const Header = () => {
             </form>
 
             {/* Icons Section */}
-            <div className="flex items-center gap-3 sm:gap-6">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-6">
               <button className="hidden sm:flex flex-col items-center gap-1 hover:text-gold transition">
                 <MapPin size={24} />
                 <span className="text-xs text-gray-600">Stores</span>
@@ -164,7 +164,7 @@ const Header = () => {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t">
-          <div className="p-4">
+          <div className="w-full p-4 sm:px-6">
             <form onSubmit={handleSearch} className="mb-4">
               <input
                 type="text"
@@ -174,7 +174,7 @@ const Header = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded"
               />
             </form>
-            <nav className="space-y-4">
+            <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
               {[
                 { label: 'All Jewellery', to: '/products' },
                 { label: 'Gold', to: '/products?material=Gold' },
@@ -184,7 +184,7 @@ const Header = () => {
                 <Link
                   key={item.label}
                   to={item.to}
-                  className="block py-2 text-gray-800 font-medium"
+                  className="block rounded-lg border border-gray-200 px-3 py-3 text-sm font-medium text-gray-800"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}

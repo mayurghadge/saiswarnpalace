@@ -10,8 +10,8 @@
 .menu-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  max-width: 1400px;
+  justify-content: flex-start;
+  width: 100%;
   min-height: 68px;
   margin: auto;
   padding: 0 40px;
