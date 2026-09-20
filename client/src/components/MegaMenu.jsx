@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { menuData } from '../data/menuData';
 import './MegaMenu.css';
@@ -47,7 +47,7 @@ const itemFilters = (menuTitle, heading, label) => {
     return filters;
   }
 
-  if (menuTitle === 'Gold' || menuTitle === 'Diamond') {
+  if (menuTitle === 'Gold' || menuTitle === 'Diamond' || menuTitle === 'Silver') {
     if (upperHeading.includes('EARRING')) {
       filters.category = 'Earrings';
       filters.style = label;
@@ -94,13 +94,106 @@ const itemFilters = (menuTitle, heading, label) => {
   return filters;
 };
 
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+const normalizeMaterial = (value) => String(value || '').trim().toLowerCase();
+
+const categoryItem = (category, material) => ({
+  label: category.name,
+  filters: {
+    category: category.id,
+    ...(material === 'All Jewellery' ? {} : { material })
+  }
+});
+
+const buildMaterialGroups = (categories, material) => {
+  const materialCategories = categories.filter(
+    (category) => normalizeMaterial(category.material) === normalizeMaterial(material)
+  );
+  const categoryIds = new Set(materialCategories.map((category) => category.id));
+  const roots = materialCategories.filter(
+    (category) => !category.parent_category_id || !categoryIds.has(category.parent_category_id)
+  );
+
+  return roots.map((root) => {
+    const children = materialCategories.filter(
+      (category) => category.parent_category_id === root.id
+    );
+
+    return {
+      heading: root.name.toUpperCase(),
+      items: children.length
+        ? [
+            { label: `All ${root.name}`, filters: { category: root.id, material } },
+            ...children.map((category) => categoryItem(category, material))
+          ]
+        : [categoryItem(root, material)]
+    };
+  });
+};
+
+const buildDynamicMenuData = (categories) => {
+  const activeCategories = categories.filter(
+    (category) => category.is_active !== false && category.is_active !== 0
+  );
+
+  return menuData.map((menu) => {
+    if (menu.title === 'All Jewellery') {
+      const categoryItems = activeCategories
+        .filter((category) => !category.parent_category_id)
+        .map((category) => categoryItem(category, menu.title));
+
+      if (!categoryItems.length) return menu;
+
+      return {
+        ...menu,
+        groups: menu.groups.map((group) =>
+          group.heading === 'CATEGORIES'
+            ? { ...group, items: categoryItems }
+            : group
+        )
+      };
+    }
+
+    const groups = buildMaterialGroups(activeCategories, menu.title);
+    return groups.length ? { ...menu, groups } : menu;
+  });
+};
+
 export default function MegaMenu() {
   const [activeMenu, setActiveMenu] = useState(null);
+  const [menus, setMenus] = useState(menuData);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/categories`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const categories = Array.isArray(data) ? data : data.categories;
+
+        if (isMounted && Array.isArray(categories) && categories.length) {
+          setMenus(buildDynamicMenuData(categories));
+        }
+      } catch (error) {
+        console.error('Failed to load menu categories:', error);
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <nav className="main-navigation" onMouseLeave={() => setActiveMenu(null)}>
       <div className="menu-container">
-        {menuData.map((menu) => (
+        {menus.map((menu) => (
           <div
             className="menu-item"
             key={menu.title}

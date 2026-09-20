@@ -99,38 +99,25 @@ export const menuData = [
   },
 
   {
-    title: "Rings",
+    title: "Silver",
     groups: [
       {
-        heading: "GOLD",
-        items: ["Engagement Rings", "Party", "Work Wear", "Daily Wear"],
+        heading: "SILVER EARRINGS",
+        items: ["Jhumka", "Stud", "Hoop", "Drop Earrings", "Chandbali"],
       },
       {
-        heading: "DIAMOND",
-        items: ["Engagement Rings", "Solitaire", "Casual", "Cocktail"],
+        heading: "SILVER RINGS",
+        items: ["Daily Wear", "Statement", "Adjustable", "Couple Rings"],
       },
       {
-        heading: "SHOP BY GENDER",
-        items: ["Women", "Men", "Couple Rings", "Kids"],
+        heading: "SILVER NECKWEAR",
+        items: ["Chains", "Necklaces", "Pendants", "Chokers", "Neckwear Set"],
+      },
+      {
+        heading: "OTHER SILVER",
+        items: ["Bangles", "Bracelets", "Anklets", "Toe Rings", "Silver Coins", "Idols"],
       },
     ],
   },
 
-  {
-    title: "Earrings",
-    groups: [
-      {
-        heading: "GOLD",
-        items: ["Jhumka", "Stud", "Hanging", "Chandbali", "Others"],
-      },
-      {
-        heading: "DIAMOND",
-        items: ["Stud", "Hanging", "Jhumka", "Hoop"],
-      },
-      {
-        heading: "SHOP BY OCCASION",
-        items: ["Wedding", "Party", "Work Wear", "Daily Wear"],
-      },
-    ],
-  },
 ];

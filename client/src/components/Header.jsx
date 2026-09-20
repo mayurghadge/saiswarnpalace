@@ -179,8 +179,7 @@ const Header = () => {
                 { label: 'All Jewellery', to: '/products' },
                 { label: 'Gold', to: '/products?material=Gold' },
                 { label: 'Diamond', to: '/products?material=Diamond' },
-                { label: 'Rings', to: '/products?category=Rings' },
-                { label: 'Earrings', to: '/products?category=Earrings' },
+                { label: 'Silver', to: '/products?material=Silver' },
               ].map((item) => (
                 <Link
                   key={item.label}

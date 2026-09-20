@@ -383,6 +383,7 @@ const AdminDashboard = () => {
   const [calculatingPrice, setCalculatingPrice] = useState(false);
   const emptyCategoryForm = () => ({
     name: '', description: '', image: '', material: 'Gold', purity: '22K',
+    parent_category_id: '', menu_group: '',
     making_charges_per_gram: '', wastage_percentage: '',
     gst_percentage: '3', default_diamond_price: '', calculation_type: 'WEIGHT_BASED',
     display_order: '0', is_active: true
@@ -1628,6 +1629,10 @@ const AdminDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Material</label><select value={categoryForm.material} onChange={e=>setCategoryForm({...categoryForm, material:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option>Gold</option><option>Silver</option><option>Diamond</option><option>Platinum</option></select></div>
                 <div><label className="block text-sm font-semibold text-gray-700 mb-1">Purity</label><select value={categoryForm.purity} onChange={e=>setCategoryForm({...categoryForm, purity:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="24K">24K</option><option value="22K">22K</option><option value="18K">18K</option><option value="999">999 Silver</option><option value="925">925 Silver</option></select></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Parent Category</label><select value={categoryForm.parent_category_id || ''} onChange={e=>setCategoryForm({...categoryForm, parent_category_id:e.target.value})} className="w-full px-4 py-2 border rounded-lg"><option value="">Main category</option>{categories.filter(c=>String(c.id) !== String(editingCategory?.id)).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                <div><label className="block text-sm font-semibold text-gray-700 mb-1">Menu Group</label><input type="text" value={categoryForm.menu_group || ''} onChange={e=>setCategoryForm({...categoryForm, menu_group:e.target.value})} className="w-full px-4 py-2 border rounded-lg" placeholder="Optional menu heading" /></div>
               </div>
               <div><label className="block text-sm font-semibold text-gray-700 mb-1">Making Charge / g</label><input type="number" min="0" step="0.01" value={categoryForm.making_charges_per_gram} onChange={e=>setCategoryForm({...categoryForm, making_charges_per_gram:e.target.value})} className="w-full px-4 py-2 border rounded-lg" /></div>
               <div className="grid grid-cols-2 gap-4">

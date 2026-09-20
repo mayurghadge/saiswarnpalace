@@ -4,6 +4,48 @@ const jwt = require('jsonwebtoken');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
 
+const ensureAdminCategoryColumns = async (pool) => {
+  await pool.request().query(`
+    IF COL_LENGTH('dbo.Categories', 'Slug') IS NULL
+      ALTER TABLE dbo.Categories ADD Slug NVARCHAR(150) NULL;
+    IF COL_LENGTH('dbo.Categories', 'Description') IS NULL
+      ALTER TABLE dbo.Categories ADD Description NVARCHAR(1000) NULL;
+    IF COL_LENGTH('dbo.Categories', 'ParentCategoryId') IS NULL
+      ALTER TABLE dbo.Categories ADD ParentCategoryId INT NULL;
+    IF COL_LENGTH('dbo.Categories', 'MenuGroup') IS NULL
+      ALTER TABLE dbo.Categories ADD MenuGroup NVARCHAR(100) NULL;
+    IF COL_LENGTH('dbo.Categories', 'Material') IS NULL
+      ALTER TABLE dbo.Categories ADD Material NVARCHAR(50) NULL;
+    IF COL_LENGTH('dbo.Categories', 'DisplayOrder') IS NULL
+      ALTER TABLE dbo.Categories ADD DisplayOrder INT NULL;
+    IF COL_LENGTH('dbo.Categories', 'IsActive') IS NULL
+      ALTER TABLE dbo.Categories ADD IsActive BIT NULL;
+    IF COL_LENGTH('dbo.Categories', 'CreatedAt') IS NULL
+      ALTER TABLE dbo.Categories ADD CreatedAt DATETIME2 NULL;
+    IF COL_LENGTH('dbo.Categories', 'UpdatedAt') IS NULL
+      ALTER TABLE dbo.Categories ADD UpdatedAt DATETIME2 NULL;
+
+    UPDATE dbo.Categories SET IsActive = 1 WHERE IsActive IS NULL;
+    UPDATE dbo.Categories SET Material = 'Gold'
+      WHERE Material IS NULL OR LTRIM(RTRIM(Material)) = '';
+    UPDATE dbo.Categories SET DisplayOrder = 0 WHERE DisplayOrder IS NULL;
+    UPDATE dbo.Categories SET CreatedAt = GETDATE() WHERE CreatedAt IS NULL;
+  `);
+};
+
+const createCategorySlug = (value = '') => String(value)
+  .trim()
+  .toLowerCase()
+  .replace(/&/g, 'and')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
+const nullableCategoryId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const id = Number(value);
+  return Number.isInteger(id) ? id : null;
+};
+
 const normalizeAdminEmail = (value = '') => String(value || '').trim().toLowerCase();
 const fallbackAdminEmail = normalizeAdminEmail(process.env.ADMIN_EMAIL);
 const fallbackAdminPassword = process.env.ADMIN_PASSWORD;
@@ -187,15 +229,23 @@ const optionalDate = (value, endOfDay = false) => {
 exports.getCategories = async (req, res) => {
   try {
     const pool = await connectDB();
+    await ensureAdminCategoryColumns(pool);
     const result = await pool.request().query(`
       SELECT
         Id AS id,
         Name AS name,
+        Description AS description,
         ImageURL AS image,
-        LOWER(REPLACE(Name, ' ', '-')) AS slug,
-        GETDATE() AS created_at
+        Slug AS slug,
+        ParentCategoryId AS parent_category_id,
+        MenuGroup AS menu_group,
+        Material AS material,
+        DisplayOrder AS display_order,
+        IsActive AS is_active,
+        CreatedAt AS created_at,
+        UpdatedAt AS updated_at
       FROM Categories
-      ORDER BY Name ASC
+      ORDER BY DisplayOrder, Name ASC
     `);
     res.status(200).json({ categories: result.recordset });
   } catch (error) {
@@ -206,7 +256,15 @@ exports.getCategories = async (req, res) => {
 
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const {
+      name,
+      description,
+      parent_category_id,
+      menu_group,
+      material,
+      display_order,
+      is_active
+    } = req.body;
     let imagePath = req.body.image || '';
     
     if (req.file) {
@@ -221,14 +279,27 @@ exports.createCategory = async (req, res) => {
     }
     
     const pool = await connectDB();
+    await ensureAdminCategoryColumns(pool);
+    const slug = createCategorySlug(name);
     
     const result = await pool.request()
       .input('name', sql.NVarChar, name)
+      .input('slug', sql.NVarChar, slug)
+      .input('description', sql.NVarChar, description || null)
       .input('image', sql.NVarChar, imagePath)
+      .input('parentCategoryId', sql.Int, nullableCategoryId(parent_category_id))
+      .input('menuGroup', sql.NVarChar, menu_group || null)
+      .input('material', sql.NVarChar, material || 'Gold')
+      .input('displayOrder', sql.Int, Number(display_order) || 0)
+      .input('isActive', sql.Bit, is_active === false || is_active === 'false' ? 0 : 1)
       .query(`
-        INSERT INTO Categories (Name, ImageURL)
+        INSERT INTO Categories
+          (Name, Slug, Description, ImageURL, ParentCategoryId, MenuGroup,
+           Material, DisplayOrder, IsActive, CreatedAt, UpdatedAt)
         OUTPUT inserted.*
-        VALUES (@name, @image)
+        VALUES
+          (@name, @slug, @description, @image, @parentCategoryId, @menuGroup,
+           @material, @displayOrder, @isActive, GETDATE(), GETDATE())
       `);
     
     res.status(201).json({ message: 'Category created successfully', category: result.recordset[0] });
@@ -241,7 +312,15 @@ exports.createCategory = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const {
+      name,
+      description,
+      parent_category_id,
+      menu_group,
+      material,
+      display_order,
+      is_active
+    } = req.body;
     let imagePath = req.body.image || '';
     
     if (req.file) {
@@ -256,14 +335,31 @@ exports.updateCategory = async (req, res) => {
     }
     
     const pool = await connectDB();
+    await ensureAdminCategoryColumns(pool);
     
     await pool.request()
       .input('id', sql.Int, id)
       .input('name', sql.NVarChar, name)
+      .input('slug', sql.NVarChar, createCategorySlug(name))
+      .input('description', sql.NVarChar, description || null)
       .input('image', sql.NVarChar, imagePath)
+      .input('parentCategoryId', sql.Int, nullableCategoryId(parent_category_id))
+      .input('menuGroup', sql.NVarChar, menu_group || null)
+      .input('material', sql.NVarChar, material || 'Gold')
+      .input('displayOrder', sql.Int, Number(display_order) || 0)
+      .input('isActive', sql.Bit, is_active === false || is_active === 'false' ? 0 : 1)
       .query(`
         UPDATE Categories 
-        SET Name = @name, ImageURL = @image
+        SET Name = @name,
+            Slug = @slug,
+            Description = @description,
+            ImageURL = @image,
+            ParentCategoryId = @parentCategoryId,
+            MenuGroup = @menuGroup,
+            Material = @material,
+            DisplayOrder = @displayOrder,
+            IsActive = @isActive,
+            UpdatedAt = GETDATE()
         WHERE Id = @id
       `);
     
