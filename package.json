@@ -29,6 +29,7 @@
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.3.2",
     "helmet": "^6.2.0",
+    "image-size": "^2.0.4",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.11.0",
     "mssql": "^12.5.5",
