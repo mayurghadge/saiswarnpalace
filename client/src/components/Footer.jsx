@@ -22,21 +22,22 @@ const Footer = () => {
             <div className="space-y-4">
               <p className="flex items-start gap-3">
                 <span>📍</span>
-                <span>No 48, Whites Road, Royapettah, Chennai - 600 014</span>
+                <span>Sridevi Complex, Main Road, Narasannapeta, Andhra Pradesh - 532421.</span>
               </p>
               <p className="flex items-center gap-3">
                 <span>✉️</span>
-                <span>Sales: <a href="mailto:support@saiswarnpalace.com" className="underline">support@saiswarnpalace.com</a></span>
+                <span>Sales: <a href="mailto:support@saiswarnpalace@gmail.com" className="underline">support@saiswarnpalace@gmail.com</a></span>
               </p>
               <p className="flex items-center gap-3">
                 <span>📞</span>
-                <span>(044)-42297700</span>
+                <span>(+91) (83053 69369)</span>
               </p>
             </div>
             <div className="flex gap-4 mt-6">
-              <a href="#" className="hover:opacity-70 transition"><Facebook size={24} /></a>
-              <a href="#" className="hover:opacity-70 transition"><Instagram size={24} /></a>
-              <a href="#" className="hover:opacity-70 transition"><Twitter size={24} /></a>
+              <a href="https://www.facebook.com/Saibabapearls/" className="hover:opacity-70 transition"><Facebook size={24} /></a>
+              <a href="https://www.instagram.com/saibabapearls_saiswarnpalace/" className="hover:opacity-70 transition"><Instagram size={24} /></a>
+              <a href="https://x.com/saibaba_pearls" className="hover:opacity-70 transition"><Twitter size={24} /></a>
+              <a href="https://www.youtube.com/@SaiBabaPearls_SaiSwarnPalace/" className="hover:opacity-70 transition"><Youtube size={24} /></a>
             </div>
           </div>
 
